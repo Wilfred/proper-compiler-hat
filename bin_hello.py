@@ -2,18 +2,41 @@
 
 import os
 import sys
+import string
 
-# 00000000: 7f45 4c46 0201 0100 0000 0000 0000 0000  .ELF............
-# 00000010: 0200 3e00 0100 0000 7800 4000 0000 0000  ..>.....x.@.....
-# 00000020: 4000 0000 0000 0000 0000 0000 0000 0000  @...............
-# 00000030: 0000 0000 4000 3800 0100 0000 0000 0000  ....@.8.........
-# 00000040: 0100 0000 0500 0000 0000 0000 0000 0000  ................
-# 00000050: 0000 4000 0000 0000 0000 4000 0000 0000  ..@.......@.....
-# 00000060: ad00 0000 0000 0000 ad00 0000 0000 0000  ................
-# 00000070: 0000 2000 0000 0000 b801 0000 00bf 0100  .. .............
-# 00000080: 0000 48be 9f00 4000 0000 0000 ba0e 0000  ..H...@.........
-# 00000090: 000f 05b8 3c00 0000 bf00 0000 000f 0548  ....<..........H
-# 000000a0: 656c 6c6f 2c20 776f 726c 6421 0a         ello, world!.
+
+def lex(src):
+    token = None
+
+    i = 0
+    while i < len(src):
+        c = src[i]
+        if c in ['(', ')']:
+            yield c
+            token = None
+            i += 1
+        elif c in [' ', '\n']:
+            if token:
+                yield token
+                token = None
+            i += 1
+        elif c in string.ascii_letters or c in string.digits or c in ['!', '?']:
+            if token == None:
+                token = c
+            else:
+                token = token + c
+            i += 1
+        elif c == '"':
+            end_i = i + 1
+            while end_i < len(src) and src[end_i] != '"':
+                end_i += 1
+
+            assert src[end_i] == '"'
+            yield src[i:end_i]
+            i = end_i + 1
+        else:
+            assert False, "Could not lex: {!r}".format(src[i:])
+        
 
 def program_instructions(message):
     message_bytes = bytes(message, 'ascii')
@@ -68,7 +91,10 @@ def program_instructions(message):
 
 def main(filename):
     with open(filename) as f:
-        message = f.read()
+        src = f.read()
+
+    tokens = list(lex(src))
+    message = tokens[-2].strip('"')
     instructions = program_instructions(message)
 
     with open('hello', 'wb') as f:
