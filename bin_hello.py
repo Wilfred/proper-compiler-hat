@@ -5,6 +5,24 @@ import sys
 import string
 
 
+def unescape(string_lit):
+    res = ""
+    i = 0
+    while i < len(string_lit):
+        c = string_lit[i]
+        if c == "\\":
+            assert i < len(string_lit) - 1, "Backslash without following char"
+            if string_lit[i + 1] == "n":
+                res = res + "\n"
+                i += 2
+            else:
+                assert False, "Invalid escape sequence"
+        else:
+            res = res + c
+            i += 1
+    return res
+
+
 def lex(src):
     token = None
 
@@ -94,7 +112,7 @@ def main(filename):
         src = f.read()
 
     tokens = list(lex(src))
-    message = tokens[-2].strip('"')
+    message = unescape(tokens[-2].strip('"'))
     instructions = program_instructions(message)
 
     with open('hello', 'wb') as f:
