@@ -127,16 +127,22 @@ def elf_header_instructions(main_instructions):
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
-        'prog_length', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # p_filesz, the file size (173)
-        'prog_length', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # p_memsz, the file size (173)
+        'prog_length', # p_filesz, the file size (8 bytes)
+        'prog_length', # p_memsz, the file size (8 bytes)
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
 
-    # Set the program length now we know it.
-    return [
-        len(main_instructions) if b == 'prog_length' else b
-        for b in header
-    ]
+    result = []
+    for byte in header:
+        if isinstance(byte, int):
+            result.append(byte)
+        elif byte == 'prog_length':
+            result.extend(int_64bit(len(main_instructions)))
+        else:
+            assert False, "Invalid byte in header: {!r}".format(byte)
+
+    return result
+
 
 def main_fun_instructions(message):
     message_bytes = bytes(message, 'ascii')
