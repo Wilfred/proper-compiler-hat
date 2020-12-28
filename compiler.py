@@ -83,9 +83,8 @@ def parse_from(tokens, i):
             if tokens[i] == ')':
                 return (i + 1, (LIST, result))
             
-            next_i, subtree = parse_from(tokens, i)
+            i, subtree = parse_from(tokens, i)
             result.append(subtree)
-            i = next_i
     elif token == ')':
         assert False, "Unbalanced parens: {}".format(tokens[i:])
     elif token.startswith('"'):
@@ -97,7 +96,16 @@ def parse_from(tokens, i):
 
 
 def parse(tokens):
-    _, result = parse_from(tokens, 0)
+    """Return a list of expressions from parsing this list of tokens.
+
+    """
+    result = []
+
+    i = 0
+    while i < len(tokens):
+        i, subtree = parse_from(tokens, i)
+        result.append(subtree)
+    
     return result
 
 
