@@ -5,6 +5,11 @@ import sys
 import string
 
 
+STRING = "STRING"
+SYMBOL = "SYMBOL"
+LIST = "LIST"
+
+
 def unescape(string_lit):
     res = ""
     i = 0
@@ -54,7 +59,46 @@ def lex(src):
             i = end_i + 1
         else:
             assert False, "Could not lex: {!r}".format(src[i:])
-        
+
+
+def parse_from(tokens, i):
+    """Return a nested list of lists representing a parse tree, plus an
+    index of the next token to consume. `i` represents the first token
+    index.
+
+    >>> parse_from(["(", "foo", ")"], 0)
+    (3, [("SYMBOL", "foo")])
+
+    """
+    print(i)
+    token = tokens[i]
+
+    if token == '(':
+        i += 1
+        result = []
+        while True:
+            if i >= len(tokens):
+                assert False, "Missing closing paren )"
+            if tokens[i] == ')':
+                return (i + 1, (LIST, result))
+            
+            next_i, subtree = parse_from(tokens, i)
+            result.append(subtree)
+            i = next_i
+    elif token == ')':
+        assert False, "Unbalanced parens: {}".format(tokens[i:])
+    elif token.startswith('"'):
+        # string literal
+        return (i + 1, (STRING, unescape(token)))
+    else:
+        # symbol
+        return (i + 1, (SYMBOL, token))
+
+
+def parse(tokens):
+    _, result = parse_from(tokens, 0)
+    return result
+
 
 def program_instructions(message):
     message_bytes = bytes(message, 'ascii')
