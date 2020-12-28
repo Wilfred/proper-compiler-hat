@@ -125,7 +125,7 @@ def num_bytes(byte_tmpl):
 def elf_header_instructions(main_instructions):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
-    header = [
+    header_tmpl = [
         0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, # ELF magic number
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # ELF reserved
         
@@ -149,17 +149,19 @@ def elf_header_instructions(main_instructions):
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # p_offset
         0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, # p_vaddr (start of current section)
         0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, # p_paddr (start of current section)
-        'prog_length', # p_filesz, the file size (8 bytes) # WRONG!
+        'prog_length', # p_filesz, the file size (8 bytes)
         'prog_length', # p_memsz, the file size (8 bytes)
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
 
+    prog_length = num_bytes(header_tmpl) + len(main_instructions)
+
     result = []
-    for byte in header:
+    for byte in header_tmpl:
         if isinstance(byte, int):
             result.append(byte)
         elif byte == 'prog_length':
-            result.extend(int_64bit(len(main_instructions)))
+            result.extend(int_64bit(prog_length))
         else:
             assert False, "Invalid byte in header: {!r}".format(byte)
 
