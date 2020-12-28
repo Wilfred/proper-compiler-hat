@@ -187,22 +187,49 @@ def elf_header_instructions(main_instructions, message_bytes):
     return result
 
 
-def main_fun_instructions(message_bytes):
+def main_fun_instructions(ast, message_bytes):
     # The raw bytes of the instructions for the main function.
-    main_fun_tmpl = [
-        0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
-        0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-        # mov $(address of message) %rsi
-        0x48, 0xbe, 'addr_message',
+    main_fun_tmpl = []
 
-        # mov len(message) %rdx
-        0x48, 0xba, 'len_message',
-        0x0f, 0x05, # syscall (1 = sys_write)
-        
+    # string_literals = []
+    # string_offset = 0
+
+    for (kind, value) in ast:
+        if kind == LIST:
+            # function call
+            assert value, "Function calls require a function name (got an empty list)"
+
+            (fun_kind, fun_name) = value[0]
+            assert fun_kind == SYMBOL, "Can only call symbol names, got {}".format(fun_kind)
+
+            if fun_name == 'print':
+                args = value[1:]
+                assert len(args) == 1, "print takes exactly one argument"
+
+                (arg_kind, arg_value) = value[1]
+                assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
+
+                main_fun_tmpl.extend([
+                    0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
+                    0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
+                    # mov $(address of message) %rsi
+                    0x48, 0xbe, 'addr_message',
+
+                    # mov len(message) %rdx
+                    0x48, 0xba, 'len_message',
+                    0x0f, 0x05, # syscall
+                ])
+                
+            else:
+                assert False, "Unknown function: {}".format(fun_name)
+        else:
+            assert False, "Expected function call, got {}".format(kind)
+
+    main_fun_tmpl.extend([
         0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
         0xbf, 0x00, 0x00, 0x00, 0x00, # mov $0 %edi
         0x0f, 0x05, # syscall
-    ]
+    ])
 
     result = []
     for byte in main_fun_tmpl:
@@ -225,10 +252,11 @@ def main(filename):
         src = f.read()
 
     tokens = list(lex(src))
+    ast = parse(tokens)
     message = unescape(tokens[-2])
     message_bytes = bytes(message, 'ascii')
 
-    main_fun = main_fun_instructions(message_bytes)
+    main_fun = main_fun_instructions(ast, message_bytes)
     header = elf_header_instructions(main_fun, message_bytes)
 
     with open('hello', 'wb') as f:
