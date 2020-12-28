@@ -134,7 +134,7 @@ def elf_header_instructions(main_instructions, message_bytes):
         0x02, 0x00, # e_type: Executable file
         0x3e, 0x00, # e_machine: AMD64
         0x01, 0x00, 0x00, 0x00, # e_version: 1
-        0x78, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, # e_entry (program entry address, 0x78, header size + 1)
+        'prog_entry', # e_entry (program entry address, load offset + header size)
         0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # e_phoff (program header offset, 0x40)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # e_shoff (no section headers)
         
@@ -164,6 +164,8 @@ def elf_header_instructions(main_instructions, message_bytes):
             result.append(byte)
         elif byte == 'prog_length':
             result.extend(int_64bit(prog_length))
+        elif byte == 'prog_entry':
+            result.extend(int_64bit(ENTRY_POINT + num_bytes(header_tmpl)))
         else:
             assert False, "Invalid byte in header: {!r}".format(byte)
 
