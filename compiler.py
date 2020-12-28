@@ -13,6 +13,14 @@ ENTRY_POINT = 0x400000
 
 
 def unescape(string_lit):
+    """Convert the source bytes of a string literal to a string value.
+
+    >>> unescape('"foo\\n"')
+    'foo\n'
+
+    """
+    string_lit = string_lit.strip('"')
+    
     res = ""
     i = 0
     while i < len(string_lit):
@@ -217,7 +225,7 @@ def main(filename):
         src = f.read()
 
     tokens = list(lex(src))
-    message = unescape(tokens[-2].strip('"'))
+    message = unescape(tokens[-2])
     message_bytes = bytes(message, 'ascii')
 
     main_fun = main_fun_instructions(message_bytes)
