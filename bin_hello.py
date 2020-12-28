@@ -144,9 +144,7 @@ def elf_header_instructions(main_instructions):
     return result
 
 
-def main_fun_instructions(message):
-    message_bytes = bytes(message, 'ascii')
-
+def main_fun_instructions(message_bytes):
     # The raw bytes of the instructions for the main function.
     main_fun = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
@@ -173,8 +171,9 @@ def main(filename):
 
     tokens = list(lex(src))
     message = unescape(tokens[-2].strip('"'))
+    message_bytes = bytes(message, 'ascii')
 
-    main_fun = main_fun_instructions(message)
+    main_fun = main_fun_instructions(message_bytes)
     header = elf_header_instructions(main_fun)
 
     with open('hello', 'wb') as f:
