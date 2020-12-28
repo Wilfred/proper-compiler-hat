@@ -108,6 +108,20 @@ def int_64bit(num):
     return list(num.to_bytes(8, 'little'))
 
 
+def num_bytes(byte_tmpl):
+    """Given a list of raw bytes and template strings, calculate the total number
+    of bytes that the final output will have.
+
+    Assumes all template strings are replaced by 8 bytes.
+
+    >>> num_bytes([0x127, "prog_bytes"])
+    9
+
+    """
+    return sum(1 if isinstance(b, int) else 8
+               for b in byte_tmpl)
+
+
 def elf_header_instructions(main_instructions):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
