@@ -175,6 +175,7 @@ def main_fun_instructions(message_bytes):
         0x48, 0xbe] + int_64bit(0x40009f) + [
 
         # mov len(message) %edx
+        # TODO: use 64bit movabs
         0xba, len(message_bytes), 0x00, 0x00, 0x00,
         0x0f, 0x05, # syscall (1 = sys_write)
         
