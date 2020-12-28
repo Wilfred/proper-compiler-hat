@@ -122,7 +122,7 @@ def num_bytes(byte_tmpl):
                for b in byte_tmpl)
 
 
-def elf_header_instructions(main_instructions):
+def elf_header_instructions(main_instructions, message_bytes):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
     header_tmpl = [
@@ -154,7 +154,7 @@ def elf_header_instructions(main_instructions):
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
 
-    prog_length = num_bytes(header_tmpl) + len(main_instructions)
+    prog_length = num_bytes(header_tmpl) + len(main_instructions) + len(message_bytes)
 
     result = []
     for byte in header_tmpl:
@@ -184,8 +184,7 @@ def main_fun_instructions(message_bytes):
         0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
         0xbf, 0x00, 0x00, 0x00, 0x00, # mov $0 %edi
         0x0f, 0x05, # syscall
-        # TODO: put message bytes in a separate section?
-    ] + list(message_bytes)
+    ]
 
     return main_fun
 
@@ -199,11 +198,13 @@ def main(filename):
     message_bytes = bytes(message, 'ascii')
 
     main_fun = main_fun_instructions(message_bytes)
-    header = elf_header_instructions(main_fun)
+    header = elf_header_instructions(main_fun, message_bytes)
 
     with open('hello', 'wb') as f:
         f.write(bytes(header))
         f.write(bytes(main_fun))
+        # TODO: put message bytes in a separate section?
+        f.write(message_bytes)
 
     os.chmod('hello', 0o744)
 
