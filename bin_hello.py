@@ -100,6 +100,14 @@ def parse(tokens):
     return result
 
 
+def int_64bit(num):
+    """Return `num` as a list of bytes of its 64-bit representation.
+
+    """
+    assert num >= 0, "Signed numbers are not supported"
+    return list(num.to_bytes(8, 'little'))
+
+
 def elf_header_instructions(main_instructions):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
@@ -137,8 +145,8 @@ def main_fun_instructions(message):
     main_fun = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-        # mov $159 %rsi (159 = len(header) + len(main))
-        0x48, 0xbe, 0x9f, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+        # mov $0x40009f %rsi (address of message)
+        0x48, 0xbe] + int_64bit(0x40009f) + [
 
         # mov len(message) %edx
         0xba, len(message_bytes), 0x00, 0x00, 0x00,
