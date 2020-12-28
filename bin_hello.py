@@ -100,12 +100,10 @@ def parse(tokens):
     return result
 
 
-def program_instructions(message):
-    message_bytes = bytes(message, 'ascii')
-
-    # The raw bytes of the instructions of the program. We use strings
+def elf_header_instructions(main_instructions):
+    # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
-    prog = [
+    header = [
         0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, # ELF magic number
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # ELF reserved
         
@@ -124,8 +122,19 @@ def program_instructions(message):
         'prog_length', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # p_filesz, the file size (173)
         'prog_length', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # p_memsz, the file size (173)
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
-        # end ELF header
+    ]
 
+    # Set the program length now we know it.
+    return [
+        len(main_instructions) if b == 'prog_length' else b
+        for b in header
+    ]
+
+def main_fun_instructions(message):
+    message_bytes = bytes(message, 'ascii')
+
+    # The raw bytes of the instructions for the main function.
+    main_fun = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
         0x48, 0xbe, 0x9f, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, # mov $0 %rsi
@@ -137,17 +146,10 @@ def program_instructions(message):
         0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
         0xbf, 0x00, 0x00, 0x00, 0x00, # mov $0 %edi
         0x0f, 0x05, # syscall
+        # TODO: put message bytes in a separate section?
     ] + list(message_bytes)
 
-    prog_length = len(prog)
-
-    # Set the program length now we know it.
-    prog = [
-        prog_length if b == 'prog_length' else b
-        for b in prog
-    ]
-    
-    return prog
+    return main_fun
 
 
 def main(filename):
@@ -156,10 +158,13 @@ def main(filename):
 
     tokens = list(lex(src))
     message = unescape(tokens[-2].strip('"'))
-    instructions = program_instructions(message)
+
+    main_fun = main_fun_instructions(message)
+    header = elf_header_instructions(main_fun)
 
     with open('hello', 'wb') as f:
-        f.write(bytes(instructions))
+        f.write(bytes(header))
+        f.write(bytes(main_fun))
 
     os.chmod('hello', 0o744)
 
