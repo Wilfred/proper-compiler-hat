@@ -9,6 +9,8 @@ STRING = "STRING"
 SYMBOL = "SYMBOL"
 LIST = "LIST"
 
+ENTRY_POINT = 0x400000
+
 
 def unescape(string_lit):
     res = ""
@@ -170,15 +172,14 @@ def elf_header_instructions(main_instructions, message_bytes):
 
 def main_fun_instructions(message_bytes):
     # The raw bytes of the instructions for the main function.
-    main_fun = [
+    main_fun_tmpl = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
         # mov $0x40009f %rsi (address of message)
-        0x48, 0xbe] + int_64bit(0x40009f) + [
+        0x48, 0xbe] + int_64bit(ENTRY_POINT + 0x9f + 5) + [
 
-        # mov len(message) %edx
-        # TODO: use 64bit movabs
-        0xba, len(message_bytes), 0x00, 0x00, 0x00,
+        # mov len(message) %rdx
+        0x48, 0xba, 'len_message',
         0x0f, 0x05, # syscall (1 = sys_write)
         
         0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
@@ -186,7 +187,16 @@ def main_fun_instructions(message_bytes):
         0x0f, 0x05, # syscall
     ]
 
-    return main_fun
+    result = []
+    for byte in main_fun_tmpl:
+        if isinstance(byte, int):
+            result.append(byte)
+        elif byte == 'len_message':
+            result.extend(int_64bit(len(message_bytes)))
+        else:
+            assert False, "Invalid template in main fun: {!r}".format(byte)
+
+    return result
 
 
 def main(filename):
