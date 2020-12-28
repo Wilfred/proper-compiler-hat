@@ -44,7 +44,7 @@ def lex(src):
                 token = None
             i += 1
         elif c in string.ascii_letters or c in string.digits or c in ['!', '?']:
-            if token == None:
+            if token is None:
                 token = c
             else:
                 token = token + c
