@@ -65,7 +65,7 @@ def lex(src):
                 end_i += 1
 
             assert src[end_i] == '"'
-            yield src[i:end_i]
+            yield src[i:end_i + 1]
             i = end_i + 1
         else:
             assert False, "Could not lex: {!r}".format(src[i:])
