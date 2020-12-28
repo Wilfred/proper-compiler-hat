@@ -72,7 +72,6 @@ def parse_from(tokens, i):
     (3, [("SYMBOL", "foo")])
 
     """
-    print(i)
     token = tokens[i]
 
     if token == '(':
