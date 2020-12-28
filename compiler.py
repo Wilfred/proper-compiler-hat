@@ -139,7 +139,7 @@ def num_bytes(byte_tmpl):
                for b in byte_tmpl)
 
 
-def elf_header_instructions(main_instructions, message_bytes):
+def elf_header_instructions(main_instructions, string_literals):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
     header_tmpl = [
@@ -171,7 +171,8 @@ def elf_header_instructions(main_instructions, message_bytes):
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
 
-    prog_length = num_bytes(header_tmpl) + len(main_instructions) + len(message_bytes)
+    rodata_size = sum(len(lit) for lit in string_literals)
+    prog_length = num_bytes(header_tmpl) + len(main_instructions) + rodata_size
 
     result = []
     for byte in header_tmpl:
@@ -187,12 +188,12 @@ def elf_header_instructions(main_instructions, message_bytes):
     return result
 
 
-def main_fun_instructions(ast, message_bytes):
+def main_fun_instructions(ast):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
 
-    # string_literals = []
-    # string_offset = 0
+    string_literals = []
+    data_offset = 0
 
     for (kind, value) in ast:
         if kind == LIST:
@@ -208,18 +209,28 @@ def main_fun_instructions(ast, message_bytes):
 
                 (arg_kind, arg_value) = value[1]
                 assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
+                string_literal = bytes(arg_value, 'ascii')
 
                 main_fun_tmpl.extend([
                     0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
                     0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-                    # mov $(address of message) %rsi
-                    0x48, 0xbe, 'addr_message',
+                ])
+                main_fun_tmpl.extend([
+                    # mov $(address of literal) %rsi
+                    0x48, 0xbe, ['string_lit', data_offset],
+                ])
+                # mov len(literal) %rdx
+                main_fun_tmpl.extend([
+                    0x48, 0xba,
+                ])
+                main_fun_tmpl.extend(int_64bit(len(string_literal)))
 
-                    # mov len(message) %rdx
-                    0x48, 0xba, 'len_message',
+                main_fun_tmpl.extend([
                     0x0f, 0x05, # syscall
                 ])
                 
+                string_literals.append(string_literal)
+                data_offset += len(string_literal)
             else:
                 assert False, "Unknown function: {}".format(fun_name)
         else:
@@ -235,16 +246,16 @@ def main_fun_instructions(ast, message_bytes):
     for byte in main_fun_tmpl:
         if isinstance(byte, int):
             result.append(byte)
-        elif byte == 'len_message':
-            result.extend(int_64bit(len(message_bytes)))
-        elif byte == 'addr_message':
+        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'string_lit':
+            offset = byte[1]
+
             header_size = 120 # TODO: compute
-            # String literal is immediately after code section.
-            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(main_fun_tmpl)))
+            # String literals are immediately after code section.
+            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(main_fun_tmpl) + offset))
         else:
             assert False, "Invalid template in main fun: {!r}".format(byte)
 
-    return result
+    return (string_literals, result)
 
 
 def main(filename):
@@ -253,17 +264,16 @@ def main(filename):
 
     tokens = list(lex(src))
     ast = parse(tokens)
-    message = unescape(tokens[-2])
-    message_bytes = bytes(message, 'ascii')
 
-    main_fun = main_fun_instructions(ast, message_bytes)
-    header = elf_header_instructions(main_fun, message_bytes)
+    string_literals, main_fun = main_fun_instructions(ast)
+    header = elf_header_instructions(main_fun, string_literals)
 
     with open('hello', 'wb') as f:
         f.write(bytes(header))
         f.write(bytes(main_fun))
-        # TODO: put message bytes in a separate section?
-        f.write(message_bytes)
+        # TODO: put string literals in a named section
+        for string_literal in string_literals:
+            f.write(string_literal)
 
     os.chmod('hello', 0o744)
 
