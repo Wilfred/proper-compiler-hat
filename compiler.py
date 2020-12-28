@@ -177,8 +177,8 @@ def main_fun_instructions(message_bytes):
     main_fun_tmpl = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-        # mov $0x40009f %rsi (address of message)
-        0x48, 0xbe] + int_64bit(ENTRY_POINT + 0x9f + 5) + [
+        # mov $(address of message) %rsi
+        0x48, 0xbe, 'addr_message',
 
         # mov len(message) %rdx
         0x48, 0xba, 'len_message',
@@ -195,6 +195,10 @@ def main_fun_instructions(message_bytes):
             result.append(byte)
         elif byte == 'len_message':
             result.extend(int_64bit(len(message_bytes)))
+        elif byte == 'addr_message':
+            header_size = 120 # TODO: compute
+            # String literal is immediately after code section.
+            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(main_fun_tmpl)))
         else:
             assert False, "Invalid template in main fun: {!r}".format(byte)
 
