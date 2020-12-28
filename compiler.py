@@ -48,10 +48,14 @@ def lex(src):
             yield c
             token = None
             i += 1
-        elif c in [' ', '\n']:
+        elif c in [' ', '\n', ';']:
             if token:
                 yield token
                 token = None
+            if c == ';':
+                while i < len(src) and src[i] != '\n':
+                    i += 1
+                
             i += 1
         elif c in string.ascii_letters or c in string.digits or c in ['!', '?']:
             if token is None:
