@@ -202,6 +202,44 @@ def elf_header_instructions(main_instructions, string_literals):
     return result
 
 
+def print_fun_instructions(args, data_offset):
+    assert len(args) == 1, "print takes exactly one argument"
+
+    (arg_kind, arg_value) = args[0]
+    assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
+    string_literal = bytes(arg_value, 'ascii')
+
+    instructions = [
+        0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
+        0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
+        # mov $(address of literal) %rsi
+        0x48, 0xbe, ['string_lit', data_offset],
+        # mov len(literal) %rdx
+        0x48, 0xba,
+    ] + int_64bit(len(string_literal)) + [
+        # syscall
+        0x0f, 0x05,
+    ]
+    return instructions, string_literal
+
+
+def exit_fun_instructions(args):
+    assert len(args) == 1, "exit takes exactly one argument"
+
+    (arg_kind, arg_value) = args[0]
+    assert arg_kind == INTEGER, "exit requires an integer argument, got {}".format(arg_kind)
+
+    return [
+        # mov $60 %eax (60 = sys_exit)
+        0xb8, 0x3c, 0x00, 0x00, 0x00,
+        # mov ARG %edi
+        0x48, 0xbf,
+    ] + int_64bit(arg_value) + [
+        # syscall
+        0x0f, 0x05,
+    ]
+
+
 def main_fun_instructions(ast):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
@@ -217,49 +255,16 @@ def main_fun_instructions(ast):
             (fun_kind, fun_name) = value[0]
             assert fun_kind == SYMBOL, "Can only call symbol names, got {}".format(fun_kind)
 
+            args = value[1:]
             if fun_name == 'print':
-                args = value[1:]
-                assert len(args) == 1, "print takes exactly one argument"
-
-                (arg_kind, arg_value) = value[1]
-                assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
-                string_literal = bytes(arg_value, 'ascii')
-
-                main_fun_tmpl.extend([
-                    0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
-                    0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-                ])
-                main_fun_tmpl.extend([
-                    # mov $(address of literal) %rsi
-                    0x48, 0xbe, ['string_lit', data_offset],
-                ])
-                # mov len(literal) %rdx
-                main_fun_tmpl.extend([
-                    0x48, 0xba,
-                ])
-                main_fun_tmpl.extend(int_64bit(len(string_literal)))
-
-                main_fun_tmpl.extend([
-                    0x0f, 0x05, # syscall
-                ])
+                instructions, string_literal = print_fun_instructions(args, data_offset)
+                main_fun_tmpl.extend(instructions)
                 
                 string_literals.append(string_literal)
                 data_offset += len(string_literal)
             elif fun_name == 'exit':
-                args = value[1:]
-                assert len(args) == 1, "exit takes exactly one argument"
+                main_fun_tmpl.extend(exit_fun_instructions(args))
 
-                (arg_kind, arg_value) = value[1]
-                assert arg_kind == INTEGER, "exit requires an integer argument, got {}".format(arg_kind)
-
-                main_fun_tmpl.extend([
-                    0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
-                    # mov user-amount %edi
-                    0x48, 0xbf,
-                ] + int_64bit(arg_value))
-                main_fun_tmpl.extend([
-                    0x0f, 0x05, # syscall
-                ])
             else:
                 assert False, "Unknown function: {}".format(fun_name)
         else:
@@ -267,11 +272,7 @@ def main_fun_instructions(ast):
 
     # Always end the main function with (exit 0) if the user hasn't
     # exited. Otherwise, we continue executing into the data section and segfault.
-    main_fun_tmpl.extend([
-        0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
-        0xbf, 0x00, 0x00, 0x00, 0x00, # mov $0 %edi
-        0x0f, 0x05, # syscall
-    ])
+    main_fun_tmpl.extend(exit_fun_instructions([(INTEGER, 0)]))
 
     result = []
     for byte in main_fun_tmpl:
