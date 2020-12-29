@@ -45,8 +45,10 @@ def lex(src):
     while i < len(src):
         c = src[i]
         if c in ['(', ')']:
+            if token:
+                yield token
+                token = None
             yield c
-            token = None
             i += 1
         elif c in [' ', '\n', ';']:
             if token:
