@@ -6,6 +6,7 @@ import string
 
 
 STRING = "STRING"
+INTEGER = "INTEGER"
 SYMBOL = "SYMBOL"
 LIST = "LIST"
 
@@ -77,6 +78,11 @@ def lex(src):
             assert False, "Could not lex: {!r}".format(src[i:])
 
 
+def is_int_literal(token):
+    return all(c in string.digits
+               for c in token)
+
+
 def parse_from(tokens, i):
     """Return a nested list of lists representing a parse tree, plus an
     index of the next token to consume. `i` represents the first token
@@ -104,6 +110,8 @@ def parse_from(tokens, i):
     elif token.startswith('"'):
         # string literal
         return (i + 1, (STRING, unescape(token)))
+    elif is_int_literal(token):
+        return (i + 1, (INTEGER, int(token)))
     else:
         # symbol
         return (i + 1, (SYMBOL, token))
