@@ -245,11 +245,28 @@ def main_fun_instructions(ast):
                 
                 string_literals.append(string_literal)
                 data_offset += len(string_literal)
+            elif fun_name == 'exit':
+                args = value[1:]
+                assert len(args) == 1, "exit takes exactly one argument"
+
+                (arg_kind, arg_value) = value[1]
+                assert arg_kind == INTEGER, "exit requires an integer argument, got {}".format(arg_kind)
+
+                main_fun_tmpl.extend([
+                    0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
+                    # mov user-amount %edi
+                    0x48, 0xbf,
+                ] + int_64bit(arg_value))
+                main_fun_tmpl.extend([
+                    0x0f, 0x05, # syscall
+                ])
             else:
                 assert False, "Unknown function: {}".format(fun_name)
         else:
             assert False, "Expected function call, got {}".format(kind)
 
+    # Always end the main function with (exit 0) if the user hasn't
+    # exited. Otherwise, we continue executing into the data section and segfault.
     main_fun_tmpl.extend([
         0xb8, 0x3c, 0x00, 0x00, 0x00, # mov $60 %eax (60 = sys_exit)
         0xbf, 0x00, 0x00, 0x00, 0x00, # mov $0 %edi

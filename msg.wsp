@@ -1,3 +1,4 @@
 ; foo
 (print "hello, world\n")
 (print "hello, again\n")
+(exit 0)
