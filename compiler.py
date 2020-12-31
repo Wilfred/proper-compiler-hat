@@ -139,6 +139,14 @@ def int_64bit(num):
     return list(num.to_bytes(8, 'little'))
 
 
+def int_32bit(num):
+    """Return `num` as a list of bytes of its 32-bit representation.
+
+    """
+    assert num >= 0, "Signed numbers are not supported"
+    return list(num.to_bytes(4, 'little'))
+
+
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
     of bytes that the final output will have.
