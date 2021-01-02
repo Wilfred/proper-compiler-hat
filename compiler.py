@@ -215,6 +215,14 @@ def compile_print(args, context):
 
     result = []
     result.extend(compile_expr(args[0], context))
+    # TODO: we need the ability to get length of strings created at runtime.
+    # TODO: this assumes the last argument was a string literal.
+    if context['string_literals']:
+        last_literal_len = len(context['string_literals'][-1])
+    else:
+        last_literal_len = 0
+
+    result.extend(compile_string_check(context))
 
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
@@ -224,9 +232,6 @@ def compile_print(args, context):
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 1 (1 = stdout)
     ])
-
-    # TODO: we need the ability to get length of strings created at runtime.
-    last_literal_len = len(context['string_literals'][-1])
 
     # mov len(literal) %rdx
     result.extend([0x48, 0xba] + int_64bit(last_literal_len))
@@ -278,6 +283,36 @@ def compile_int_check(context):
     result.extend([0x48, 0x3d] + int_32bit(127))
     # jl END_OF_ERROR_BLOCK
     result.extend([0xf, 0x8c] + int_32bit(num_bytes(error_block)))
+
+    result.extend(error_block)
+
+    return result
+
+
+def compile_string_check(context):
+    error_msg = b"not a string :(\n"
+    context['string_literals'].append(error_msg)
+    offset = context['data_offset']
+    context['data_offset'] += len(error_msg)
+
+    error_block = [
+        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
+        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 2 (2 = stderr)
+    ]
+    # mov rsi, STRING_LIT_ADDR
+    error_block.extend([0x48, 0xbe, ['string_lit', offset]])
+    # mov len(literal) %rdx
+    error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
+    # syscall
+    error_block.extend([0x0f, 0x05])
+    
+    result = []
+    # We consider a string to be an immediate greater than 127.
+    # TODO: proper value tagging scheme.
+    # cmp rax, 127
+    result.extend([0x48, 0x3d] + int_32bit(127))
+    # jg END_OF_ERROR_BLOCK
+    result.extend([0x0f, 0x8f] + int_32bit(num_bytes(error_block)))
 
     result.extend(error_block)
 
