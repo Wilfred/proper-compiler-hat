@@ -210,7 +210,7 @@ def elf_header_instructions(main_instructions, string_literals):
     return result
 
 
-def print_fun_instructions(args, context):
+def compile_print(args, context):
     assert len(args) == 1, "print takes exactly one argument"
 
     (arg_kind, arg_value) = args[0]
@@ -231,7 +231,7 @@ def print_fun_instructions(args, context):
     return instructions, string_literal
 
 
-def exit_fun_instructions(args):
+def compile_exit(args):
     assert len(args) == 1, "exit takes exactly one argument"
 
     (arg_kind, arg_value) = args[0]
@@ -248,7 +248,7 @@ def exit_fun_instructions(args):
     ]
 
 
-def main_fun_instructions(ast, context):
+def compile_main(ast, context):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
 
@@ -262,13 +262,13 @@ def main_fun_instructions(ast, context):
 
             args = value[1:]
             if fun_name == 'print':
-                instructions, string_literal = print_fun_instructions(args, context)
+                instructions, string_literal = compile_print(args, context)
                 main_fun_tmpl.extend(instructions)
                 
                 context['string_literals'].append(string_literal)
                 context['data_offset'] += len(string_literal)
             elif fun_name == 'exit':
-                main_fun_tmpl.extend(exit_fun_instructions(args))
+                main_fun_tmpl.extend(compile_exit(args))
 
             else:
                 assert False, "Unknown function: {}".format(fun_name)
@@ -277,7 +277,7 @@ def main_fun_instructions(ast, context):
 
     # Always end the main function with (exit 0) if the user hasn't
     # exited. Otherwise, we continue executing into the data section and segfault.
-    main_fun_tmpl.extend(exit_fun_instructions([(INTEGER, 0)]))
+    main_fun_tmpl.extend(compile_exit([(INTEGER, 0)]))
 
     result = []
     for byte in main_fun_tmpl:
@@ -304,7 +304,7 @@ def main(filename):
 
     context = {'string_literals': [], 'data_offset': 0}
 
-    main_fun = main_fun_instructions(ast, context)
+    main_fun = compile_main(ast, context)
     header = elf_header_instructions(main_fun, context)
 
     with open('hello', 'wb') as f:
