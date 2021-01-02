@@ -231,21 +231,31 @@ def compile_print(args, context):
     return instructions, string_literal
 
 
+def compile_int_literal(val):
+    # mov VAL rax
+    return [0x48, 0xb8] + int_64bit(val)
+
+
 def compile_exit(args):
     assert len(args) == 1, "exit takes exactly one argument"
 
     (arg_kind, arg_value) = args[0]
     assert arg_kind == INTEGER, "exit requires an integer argument, got {}".format(arg_kind)
 
-    return [
+    result = []
+    result.extend(compile_int_literal(arg_value))
+    # Previous expression is in rax, move to argument register.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xc7])
+
+    result.extend([
         # mov $60 %eax (60 = sys_exit)
         0xb8, 0x3c, 0x00, 0x00, 0x00,
-        # mov ARG %edi
-        0x48, 0xbf,
-    ] + int_64bit(arg_value) + [
         # syscall
         0x0f, 0x05,
-    ]
+    ])
+
+    return result
 
 
 def compile_main(ast, context):
