@@ -215,25 +215,46 @@ def compile_print(args, context):
 
     (arg_kind, arg_value) = args[0]
     assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
-    string_literal = bytes(arg_value, 'ascii')
 
-    instructions = [
-        0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
-        0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
-        # mov $(address of literal) %rsi
-        0x48, 0xbe, ['string_lit', context['data_offset']],
-        # mov len(literal) %rdx
-        0x48, 0xba,
-    ] + int_64bit(len(string_literal)) + [
-        # syscall
-        0x0f, 0x05,
-    ]
-    return instructions, string_literal
+    result = []
+    result.extend(compile_string_literal(arg_value, context))
+
+    # Previous expression is in rax, move to 2nd argument register.
+    # mov rsi, rax
+    result.extend([0x48, 0x89, 0xc6])
+
+    result.extend([
+        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
+        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 1 (1 = stdout)
+    ])
+
+    # TODO: we need the ability to get length of strings created at runtime.
+    last_literal_len = len(context['string_literals'][-1])
+
+    # mov len(literal) %rdx
+    result.extend([0x48, 0xba] + int_64bit(last_literal_len))
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    return result
 
 
 def compile_int_literal(val):
     # mov VAL rax
     return [0x48, 0xb8] + int_64bit(val)
+
+
+def compile_string_literal(value, context):
+    # TODO: do this conversion during lexing.
+    string_literal = bytes(value, 'ascii')
+
+    offset = context['data_offset']
+
+    context['string_literals'].append(string_literal)
+    context['data_offset'] += len(string_literal)
+
+    # mov ADDR OF VAL rax
+    return [0x48, 0xb8, ['string_lit', offset]]
 
 
 def compile_exit(args):
@@ -272,11 +293,7 @@ def compile_main(ast, context):
 
             args = value[1:]
             if fun_name == 'print':
-                instructions, string_literal = compile_print(args, context)
-                main_fun_tmpl.extend(instructions)
-                
-                context['string_literals'].append(string_literal)
-                context['data_offset'] += len(string_literal)
+                main_fun_tmpl.extend(compile_print(args, context))
             elif fun_name == 'exit':
                 main_fun_tmpl.extend(compile_exit(args))
 
