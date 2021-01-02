@@ -218,7 +218,8 @@ def compile_print(args, context):
     # TODO: we need the ability to get length of strings created at runtime.
     # TODO: this assumes the last argument was a string literal.
     if context['string_literals']:
-        last_literal_len = len(context['string_literals'][-1])
+        last_literal = list(context['string_literals'].keys())[-1]
+        last_literal_len = len(last_literal)
     else:
         last_literal_len = 0
 
@@ -250,20 +251,14 @@ def compile_string_literal(value, context):
     # TODO: do this conversion during lexing.
     string_literal = bytes(value, 'ascii')
 
-    offset = context['data_offset']
-
-    context['string_literals'].append(string_literal)
-    context['data_offset'] += len(string_literal)
-
+    offset = string_lit_offset(string_literal, context)
     # mov ADDR OF VAL rax
     return [0x48, 0xb8, ['string_lit', offset]]
 
 
 def compile_int_check(context):
     error_msg = b"not an int :(\n"
-    context['string_literals'].append(error_msg)
-    offset = context['data_offset']
-    context['data_offset'] += len(error_msg)
+    offset = string_lit_offset(error_msg, context)
 
     error_block = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
@@ -291,9 +286,7 @@ def compile_int_check(context):
 
 def compile_string_check(context):
     error_msg = b"not a string :(\n"
-    context['string_literals'].append(error_msg)
-    offset = context['data_offset']
-    context['data_offset'] += len(error_msg)
+    offset = string_lit_offset(error_msg, context)
 
     error_block = [
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
@@ -392,6 +385,25 @@ def compile_main(ast, context):
     return result
 
 
+def string_lit_offset(value, context):
+    """Add `value` to context, and return its offset.
+
+    """
+    assert isinstance(value, bytes), "String literals must be bytes"
+
+    # If we've seen this string literal before, reuse the previous offset.
+    if value in context['string_literals']:
+        return context['string_literals'][value]
+
+    # Remember this new string literal, and compute its offset.
+    offset = context['data_offset']
+    context['string_literals'][value] = offset
+    context['data_offset'] += len(value)
+
+    return offset
+
+
+
 def main(filename):
     with open(filename) as f:
         src = f.read()
@@ -399,7 +411,7 @@ def main(filename):
     tokens = list(lex(src))
     ast = parse(tokens)
 
-    context = {'string_literals': [], 'data_offset': 0}
+    context = {'string_literals': {}, 'data_offset': 0}
 
     main_fun = compile_main(ast, context)
     header = elf_header_instructions(main_fun, context)
@@ -408,7 +420,8 @@ def main(filename):
         f.write(bytes(header))
         f.write(bytes(main_fun))
         # TODO: put string literals in a named section
-        for string_literal in context['string_literals']:
+        # Assumes dict is in insertion order (Python 3.6+)
+        for string_literal in context['string_literals'].keys():
             f.write(string_literal)
 
     os.chmod('hello', 0o744)
