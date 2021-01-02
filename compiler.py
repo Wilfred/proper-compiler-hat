@@ -257,7 +257,37 @@ def compile_string_literal(value, context):
     return [0x48, 0xb8, ['string_lit', offset]]
 
 
-def compile_exit(args):
+def compile_int_check(context):
+    error_msg = b"not an int :(\n"
+    context['string_literals'].append(error_msg)
+    offset = context['data_offset']
+    context['data_offset'] += len(error_msg)
+
+    error_block = [
+        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
+        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 2 (2 = stderr)
+    ]
+    # mov rsi, STRING_LIT_ADDR
+    error_block.extend([0x48, 0xbe, ['string_lit', offset]])
+    # mov len(literal) %rdx
+    error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
+    # syscall
+    error_block.extend([0x0f, 0x05])
+    
+    result = []
+    # We consider an integer to be an immediate less than 127.
+    # TODO: proper value tagging scheme.
+    # cmp rax, 127
+    result.extend([0x48, 0x3d] + int_32bit(127))
+    # jl END_OF_ERROR_BLOCK
+    result.extend([0xf, 0x8c] + int_32bit(num_bytes(error_block)))
+
+    result.extend(error_block)
+
+    return result
+
+
+def compile_exit(args, context):
     assert len(args) == 1, "exit takes exactly one argument"
 
     (arg_kind, arg_value) = args[0]
@@ -265,6 +295,9 @@ def compile_exit(args):
 
     result = []
     result.extend(compile_int_literal(arg_value))
+
+    result.extend(compile_int_check(context))
+    
     # Previous expression is in rax, move to argument register.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xc7])
@@ -295,7 +328,7 @@ def compile_main(ast, context):
             if fun_name == 'print':
                 main_fun_tmpl.extend(compile_print(args, context))
             elif fun_name == 'exit':
-                main_fun_tmpl.extend(compile_exit(args))
+                main_fun_tmpl.extend(compile_exit(args, context))
 
             else:
                 assert False, "Unknown function: {}".format(fun_name)
@@ -304,7 +337,7 @@ def compile_main(ast, context):
 
     # Always end the main function with (exit 0) if the user hasn't
     # exited. Otherwise, we continue executing into the data section and segfault.
-    main_fun_tmpl.extend(compile_exit([(INTEGER, 0)]))
+    main_fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
 
     result = []
     for byte in main_fun_tmpl:
