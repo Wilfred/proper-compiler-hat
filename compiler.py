@@ -213,11 +213,8 @@ def elf_header_instructions(main_instructions, string_literals):
 def compile_print(args, context):
     assert len(args) == 1, "print takes exactly one argument"
 
-    (arg_kind, arg_value) = args[0]
-    assert arg_kind == STRING, "print requires a string argument, got {}".format(arg_kind)
-
     result = []
-    result.extend(compile_string_literal(arg_value, context))
+    result.extend(compile_expr(args[0], context))
 
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
@@ -290,11 +287,8 @@ def compile_int_check(context):
 def compile_exit(args, context):
     assert len(args) == 1, "exit takes exactly one argument"
 
-    (arg_kind, arg_value) = args[0]
-    assert arg_kind == INTEGER, "exit requires an integer argument, got {}".format(arg_kind)
-
     result = []
-    result.extend(compile_int_literal(arg_value))
+    result.extend(compile_expr(args[0], context))
 
     result.extend(compile_int_check(context))
     
@@ -312,28 +306,36 @@ def compile_exit(args, context):
     return result
 
 
+def compile_expr(subtree, context):
+    kind, value = subtree
+    if kind == LIST:
+        # function call
+        assert value, "Function calls require a function name (got an empty list)"
+
+        (fun_kind, fun_name) = value[0]
+        assert fun_kind == SYMBOL, "Can only call symbol names, got {}".format(fun_kind)
+
+        args = value[1:]
+        if fun_name == 'print':
+            return compile_print(args, context)
+        elif fun_name == 'exit':
+            return compile_exit(args, context)
+        else:
+            assert False, "Unknown function: {}".format(fun_name)
+    elif kind == INTEGER:
+        return compile_int_literal(value)
+    elif kind == STRING:
+        return compile_string_literal(value, context)
+    else:
+        assert False, "Expected function call, got {}".format(kind)
+
+
 def compile_main(ast, context):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
 
-    for (kind, value) in ast:
-        if kind == LIST:
-            # function call
-            assert value, "Function calls require a function name (got an empty list)"
-
-            (fun_kind, fun_name) = value[0]
-            assert fun_kind == SYMBOL, "Can only call symbol names, got {}".format(fun_kind)
-
-            args = value[1:]
-            if fun_name == 'print':
-                main_fun_tmpl.extend(compile_print(args, context))
-            elif fun_name == 'exit':
-                main_fun_tmpl.extend(compile_exit(args, context))
-
-            else:
-                assert False, "Unknown function: {}".format(fun_name)
-        else:
-            assert False, "Expected function call, got {}".format(kind)
+    for subtree in ast:
+        main_fun_tmpl.extend(compile_expr(subtree, context))
 
     # Always end the main function with (exit 0) if the user hasn't
     # exited. Otherwise, we continue executing into the data section and segfault.
