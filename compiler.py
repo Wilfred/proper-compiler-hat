@@ -210,7 +210,7 @@ def elf_header_instructions(main_instructions, string_literals):
     return result
 
 
-def print_fun_instructions(args, data_offset):
+def print_fun_instructions(args, context):
     assert len(args) == 1, "print takes exactly one argument"
 
     (arg_kind, arg_value) = args[0]
@@ -221,7 +221,7 @@ def print_fun_instructions(args, data_offset):
         0xb8, 0x01, 0x00, 0x00, 0x00, # mov $1 %eax (1 = sys_write)
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov $1 %edi (1 = stdout)
         # mov $(address of literal) %rsi
-        0x48, 0xbe, ['string_lit', data_offset],
+        0x48, 0xbe, ['string_lit', context['data_offset']],
         # mov len(literal) %rdx
         0x48, 0xba,
     ] + int_64bit(len(string_literal)) + [
@@ -248,12 +248,9 @@ def exit_fun_instructions(args):
     ]
 
 
-def main_fun_instructions(ast):
+def main_fun_instructions(ast, context):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
-
-    string_literals = []
-    data_offset = 0
 
     for (kind, value) in ast:
         if kind == LIST:
@@ -265,11 +262,11 @@ def main_fun_instructions(ast):
 
             args = value[1:]
             if fun_name == 'print':
-                instructions, string_literal = print_fun_instructions(args, data_offset)
+                instructions, string_literal = print_fun_instructions(args, context)
                 main_fun_tmpl.extend(instructions)
                 
-                string_literals.append(string_literal)
-                data_offset += len(string_literal)
+                context['string_literals'].append(string_literal)
+                context['data_offset'] += len(string_literal)
             elif fun_name == 'exit':
                 main_fun_tmpl.extend(exit_fun_instructions(args))
 
@@ -295,7 +292,7 @@ def main_fun_instructions(ast):
         else:
             assert False, "Invalid template in main fun: {!r}".format(byte)
 
-    return (string_literals, result)
+    return result
 
 
 def main(filename):
@@ -305,14 +302,16 @@ def main(filename):
     tokens = list(lex(src))
     ast = parse(tokens)
 
-    string_literals, main_fun = main_fun_instructions(ast)
-    header = elf_header_instructions(main_fun, string_literals)
+    context = {'string_literals': [], 'data_offset': 0}
+
+    main_fun = main_fun_instructions(ast, context)
+    header = elf_header_instructions(main_fun, context)
 
     with open('hello', 'wb') as f:
         f.write(bytes(header))
         f.write(bytes(main_fun))
         # TODO: put string literals in a named section
-        for string_literal in string_literals:
+        for string_literal in context['string_literals']:
             f.write(string_literal)
 
     os.chmod('hello', 0o744)
