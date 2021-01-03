@@ -334,6 +334,29 @@ def compile_exit(args, context):
     return result
 
 
+def compile_add(args, context):
+    assert len(args) == 2, "+ takes exactly two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+
+    # pop rdi
+    result.extend([0x5f])
+
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xf8])
+    
+    return result
+
+
 def compile_expr(subtree, context):
     kind, value = subtree
     if kind == LIST:
@@ -348,6 +371,8 @@ def compile_expr(subtree, context):
             return compile_print(args, context)
         elif fun_name == 'exit':
             return compile_exit(args, context)
+        elif fun_name == '+':
+            return compile_add(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
