@@ -271,6 +271,15 @@ def compile_int_check(context):
     # syscall
     error_block.extend([0x0f, 0x05])
     
+    # exit(1);
+    # mov rdi, 1 (exit code)
+    error_block.extend([0x48, 0xbf] + int_64bit(1))
+    error_block.extend([
+        # mov eax, 60 (60 = sys_exit)
+        0xb8, 0x3c, 0x00, 0x00, 0x00,
+        # syscall
+        0x0f, 0x05])
+
     result = []
     # We consider an integer to be an immediate less than 127.
     # TODO: proper value tagging scheme.
@@ -298,7 +307,16 @@ def compile_string_check(context):
     error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
     # syscall
     error_block.extend([0x0f, 0x05])
-    
+
+    # exit(1);
+    # mov rdi, 1 (exit code)
+    error_block.extend([0x48, 0xbf] + int_64bit(1))
+    error_block.extend([
+        # mov eax, 60 (60 = sys_exit)
+        0xb8, 0x3c, 0x00, 0x00, 0x00,
+        # syscall
+        0x0f, 0x05])
+
     result = []
     # We consider a string to be an immediate greater than 127.
     # TODO: proper value tagging scheme.
