@@ -2,3 +2,18 @@
 (print "hello, world\n")
 (print "hello, again\n")
 (exit (+ 1 (+ 2 3)))
+
+; DEBUGGING NOTES
+;
+; objdump can't show us the instructions of our executable section
+; because we haven't set up section headers. gdb works fine though.
+;
+; $ gdb hello
+; (gdb) starti
+; (gdb) x/5i $pc
+;
+; Alternatively, to print the following instructions on every step:
+;
+; (gdb) display/5i $pc
+;
+; The gdb command 'layout reg' is helpful for seeing register values.
