@@ -147,6 +147,43 @@ def int_32bit(num):
     return list(num.to_bytes(4, 'little'))
 
 
+# TAGGING SCHEME
+#
+# We use the top two bits to tag the runtime type, leaving 64-bits for
+# content.
+#
+# So for the last byte (since x86_64 is LSB and we want the most
+# significant byte):
+#
+# 0b00xxxxxx: Integer
+
+def compile_to_tagged_int():
+    """Emit instructions that convert a 64-bit integer value to a tagged
+    value.
+
+    Overflows wrap around.
+
+    """
+    # Zero the top two bits.
+
+    result = []
+    # shl rax, 2
+    result.extend([0x48, 0xC1, 0xE0, 0x02])
+    # shr rax, 2
+    result.extend([0x48, 0xC1, 0xE8, 0x02])
+
+    return result
+
+
+def compile_from_tagged_int():
+    """Emit instructions that convert a tagged
+    integer to a 64-bit integer.
+
+    """
+    # Since the tag bits are zero, no work required here.
+    return []
+
+
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
     of bytes that the final output will have.
@@ -243,8 +280,12 @@ def compile_print(args, context):
 
 
 def compile_int_literal(val):
-    # mov VAL rax
-    return [0x48, 0xb8] + int_64bit(val)
+    result = []
+    # mov rax, VAL
+    result.extend([0x48, 0xb8] + int_64bit(val))
+
+    result.extend(compile_to_tagged_int())
+    return result
 
 
 def compile_string_literal(value, context):
@@ -358,6 +399,9 @@ def compile_add(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
     # Push first argument, so we can reuse rax.
     # push rax
     result.extend([0x50])
@@ -365,12 +409,15 @@ def compile_add(args, context):
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
     result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
 
     # pop rdi
     result.extend([0x5f])
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xf8])
+    result.extend(compile_to_tagged_int())
     
     return result
 
