@@ -342,15 +342,17 @@ def compile_int_check(context):
     error_block = compile_die(b"not an int :(\n", context)
 
     result = []
-    # We consider an integer to be an immediate less than 127.
-    # TODO: proper value tagging scheme.
-    # cmp rax, 127
-    result.extend([0x48, 0x3d] + int_32bit(127))
-    # jl END_OF_ERROR_BLOCK
-    result.extend([0xf, 0x8c] + int_32bit(num_bytes(error_block)))
+    # A value is an integer if the top two bits are 0b00.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xc7])
+    # shr rdi, 62
+    result.extend([0x48, 0xc1, 0xef, 62])
+    # cmp rdi, 0
+    result.extend([0x48, 0x81, 0xff] + int_32bit(0))
+    # je END_OF_ERROR_BLOCK
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
 
     result.extend(error_block)
-
     return result
 
 def compile_die(message, context):
