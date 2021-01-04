@@ -16,4 +16,5 @@
 ;
 ; (gdb) display/5i $pc
 ;
-; The gdb command 'layout reg' is helpful for seeing register values.
+; The gdb command 'layout reg' is helpful for seeing register
+; values. You can also do 'layout asm' to see the assembly alongside.
