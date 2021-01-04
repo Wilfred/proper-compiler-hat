@@ -156,6 +156,7 @@ def int_32bit(num):
 # significant byte):
 #
 # 0b00xxxxxx: Integer
+# 0b10xxxxxx: String
 
 def compile_to_tagged_int():
     """Emit instructions that convert a 64-bit integer value to a tagged
@@ -182,6 +183,36 @@ def compile_from_tagged_int():
     """
     # Since the tag bits are zero, no work required here.
     return []
+
+
+def compile_ptr_to_tagged_string():
+    # Compile a pointer to a string object (in rodata) to a tagged
+    # pointer.
+
+    result = []
+
+    # Write 0b10000000 to the most significant byte of rdx.
+    # TODO: how can we be sure that real string pointers don't have
+    # the top two bits set?
+
+    # mov rdi, 0x8000000000000000
+    result.extend([0x48, 0xbf] + int_64bit(0x8000000000000000))
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xf8])
+
+    return result
+
+
+def compile_tagged_string_to_ptr():
+    # Zero the top two bits.
+
+    result = []
+    # shl rax, 2
+    result.extend([0x48, 0xC1, 0xE0, 0x02])
+    # shr rax, 2
+    result.extend([0x48, 0xC1, 0xE8, 0x02])
+
+    return result
 
 
 def num_bytes(byte_tmpl):
@@ -261,6 +292,7 @@ def compile_print(args, context):
         last_literal_len = 0
 
     result.extend(compile_string_check(context))
+    result.extend(compile_tagged_string_to_ptr())
 
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
@@ -293,8 +325,13 @@ def compile_string_literal(value, context):
     string_literal = bytes(value, 'ascii')
 
     offset = string_lit_offset(string_literal, context)
+
+    result = []
     # mov ADDR OF VAL rax
-    return [0x48, 0xb8, ['string_lit', offset]]
+    result.extend([0x48, 0xb8, ['string_lit', offset]])
+
+    result.extend(compile_ptr_to_tagged_string())
+    return result
 
 
 def compile_int_check(context):
@@ -359,15 +396,17 @@ def compile_string_check(context):
         0x0f, 0x05])
 
     result = []
-    # We consider a string to be an immediate greater than 127.
-    # TODO: proper value tagging scheme.
-    # cmp rax, 127
-    result.extend([0x48, 0x3d] + int_32bit(127))
-    # jg END_OF_ERROR_BLOCK
-    result.extend([0x0f, 0x8f] + int_32bit(num_bytes(error_block)))
-
+    # A value is a string if the top two bits are 0b10.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xc7])
+    # shr rdi, 62
+    result.extend([0x48, 0xc1, 0xef, 62])
+    # cmp rdi, 2
+    result.extend([0x48, 0x81, 0xff] + int_32bit(2))
+    # je END_OF_ERROR_BLOCK
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
+    
     result.extend(error_block)
-
     return result
 
 
