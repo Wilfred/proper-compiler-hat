@@ -294,6 +294,10 @@ def compile_print(args, context):
     result.extend(compile_string_check(context))
     result.extend(compile_tagged_string_to_ptr())
 
+    # The first 8 bytes of a string store the length.
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
     result.extend([0x48, 0x89, 0xc6])
@@ -344,6 +348,11 @@ def compile_int_check(context):
     ]
     # mov rsi, STRING_LIT_ADDR
     error_block.extend([0x48, 0xbe, ['string_lit', offset]])
+
+    # The first 8 bytes of a string store the length.
+    # add rsi, 8
+    error_block.extend([0x48, 0x81, 0xc6] + int_32bit(8))
+
     # mov len(literal) %rdx
     error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
     # syscall
@@ -381,6 +390,11 @@ def compile_string_check(context):
     ]
     # mov rsi, STRING_LIT_ADDR
     error_block.extend([0x48, 0xbe, ['string_lit', offset]])
+
+    # The first 8 bytes of a string store the length.
+    # add rsi, 8
+    error_block.extend([0x48, 0x81, 0xc6] + int_32bit(8))
+
     # mov len(literal) %rdx
     error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
     # syscall
@@ -527,7 +541,9 @@ def string_lit_offset(value, context):
     # Remember this new string literal, and compute its offset.
     offset = context['data_offset']
     context['string_literals'][value] = offset
-    context['data_offset'] += len(value)
+    # The new offset will be the size of this string, including its
+    # length data.
+    context['data_offset'] += len(value) + 8
 
     return offset
 
@@ -551,6 +567,9 @@ def main(filename):
         # TODO: put string literals in a named section
         # Assumes dict is in insertion order (Python 3.6+)
         for string_literal in context['string_literals'].keys():
+            # Strings are stored as a 64-bit integer of their length,
+            # then their data.
+            f.write(bytes(int_64bit(len(string_literal))))
             f.write(string_literal)
 
     os.chmod('hello', 0o744)
