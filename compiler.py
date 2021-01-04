@@ -339,33 +339,7 @@ def compile_string_literal(value, context):
 
 
 def compile_int_check(context):
-    error_msg = b"not an int :(\n"
-    offset = string_lit_offset(error_msg, context)
-
-    error_block = [
-        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
-        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 2 (2 = stderr)
-    ]
-    # mov rsi, STRING_LIT_ADDR
-    error_block.extend([0x48, 0xbe, ['string_lit', offset]])
-
-    # The first 8 bytes of a string store the length.
-    # add rsi, 8
-    error_block.extend([0x48, 0x81, 0xc6] + int_32bit(8))
-
-    # mov len(literal) %rdx
-    error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
-    # syscall
-    error_block.extend([0x0f, 0x05])
-    
-    # exit(1);
-    # mov rdi, 1 (exit code)
-    error_block.extend([0x48, 0xbf] + int_64bit(1))
-    error_block.extend([
-        # mov eax, 60 (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00,
-        # syscall
-        0x0f, 0x05])
+    error_block = compile_die(b"not an int :(\n", context)
 
     result = []
     # We consider an integer to be an immediate less than 127.
@@ -379,35 +353,42 @@ def compile_int_check(context):
 
     return result
 
+def compile_die(message, context):
+    assert isinstance(message, bytes)
+    
+    addr = string_lit_offset(message, context)
 
-def compile_string_check(context):
-    error_msg = b"not a string :(\n"
-    offset = string_lit_offset(error_msg, context)
-
-    error_block = [
-        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
-        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 2 (2 = stderr)
+    result = [
+        # mov eax, 1 (1 = sys_write)
+        0xb8, 0x01, 0x00, 0x00, 0x00,
+        # mov edi, 2 (2 = stderr)
+        0xbf, 0x01, 0x00, 0x00, 0x00,
     ]
     # mov rsi, STRING_LIT_ADDR
-    error_block.extend([0x48, 0xbe, ['string_lit', offset]])
+    result.extend([0x48, 0xbe, ['string_lit', addr]])
 
     # The first 8 bytes of a string store the length.
     # add rsi, 8
-    error_block.extend([0x48, 0x81, 0xc6] + int_32bit(8))
+    result.extend([0x48, 0x81, 0xc6] + int_32bit(8))
 
-    # mov len(literal) %rdx
-    error_block.extend([0x48, 0xba] + int_64bit(len(error_msg)))
+    # mov rdx, len(literal)
+    result.extend([0x48, 0xba] + int_64bit(len(message)))
     # syscall
-    error_block.extend([0x0f, 0x05])
+    result.extend([0x0f, 0x05])
 
-    # exit(1);
     # mov rdi, 1 (exit code)
-    error_block.extend([0x48, 0xbf] + int_64bit(1))
-    error_block.extend([
+    result.extend([0x48, 0xbf] + int_64bit(1))
+    result.extend([
         # mov eax, 60 (60 = sys_exit)
         0xb8, 0x3c, 0x00, 0x00, 0x00,
         # syscall
         0x0f, 0x05])
+
+    return result
+
+
+def compile_string_check(context):
+    error_block = compile_die(b"not a string :(\n", context)
 
     result = []
     # A value is a string if the top two bits are 0b10.
