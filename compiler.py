@@ -7,6 +7,7 @@ import string
 
 STRING = "STRING"
 INTEGER = "INTEGER"
+BOOLEAN = "BOOLEAN"
 SYMBOL = "SYMBOL"
 LIST = "LIST"
 
@@ -107,6 +108,10 @@ def parse_from(tokens, i):
             result.append(subtree)
     elif token == ')':
         assert False, "Unbalanced parens: {}".format(tokens[i:])
+    elif token == 'true':
+        return (i + 1, (BOOLEAN, True))
+    elif token == 'false':
+        return (i + 1, (BOOLEAN, False))
     elif token.startswith('"'):
         # string literal
         return (i + 1, (STRING, unescape(token)))
