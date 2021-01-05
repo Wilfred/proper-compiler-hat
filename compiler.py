@@ -162,6 +162,7 @@ def int_32bit(num):
 #
 # 0b00xxxxxx: Integer
 # 0b10xxxxxx: String
+# 0b11xxxxxx: Boolean
 
 def compile_to_tagged_int():
     """Emit instructions that convert a 64-bit integer value to a tagged
@@ -343,6 +344,15 @@ def compile_string_literal(value, context):
     return result
 
 
+def compile_bool_literal(value):
+    if value:
+        # mov rax, (bool_tag | 1)
+        return [0x48, 0xb8] + int_64bit(0xc000000000000001)
+    else:
+        # mov rax, (bool_tag | 0)
+        return [0x48, 0xb8] + int_64bit(0xc000000000000000)
+
+
 def compile_int_check(context):
     error_block = compile_die(b"not an int :(\n", context)
 
@@ -485,6 +495,8 @@ def compile_expr(subtree, context):
         return compile_int_literal(value)
     elif kind == STRING:
         return compile_string_literal(value, context)
+    elif kind == BOOLEAN:
+        return compile_bool_literal(value)
     else:
         assert False, "Expected function call, got {}".format(kind)
 
