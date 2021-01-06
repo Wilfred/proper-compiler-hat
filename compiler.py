@@ -321,6 +321,45 @@ def compile_print(args, context):
     return result
 
 
+def compile_bool_to_string(args, context):
+    assert len(args) == 1, "bool-to-string takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_bool_check(context))
+
+    # Zero the top two bits.
+    # shl rax, 2
+    result.extend([0x48, 0xC1, 0xE0, 0x02])
+    # shr rax, 2
+    result.extend([0x48, 0xC1, 0xE8, 0x02])
+
+    true_string_addr = string_lit_offset(b"true", context)
+    false_string_addr = string_lit_offset(b"false", context)
+
+    true_block = [
+        # mov rax, ADDR_of_TRUE_STRING
+        0x48, 0xb8, ['string_lit', true_string_addr],
+    ]
+    false_block = [
+        # mov rax, ADDR_of_FALSE_STRING
+        0x48, 0xb8, ['string_lit', false_string_addr],
+    ]
+    # jmp END_OF_TRUE_BLOCk
+    false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
+
+    # cmp rax, 1
+    result.extend([0x48, 0x3d] + int_32bit(1))
+    # je TRUE_BLOCK (straight after FALSE_BLOCK)
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(false_block)))
+
+    result.extend(false_block)
+    result.extend(true_block)
+
+    result.extend(compile_ptr_to_tagged_string())
+    return result
+
+
 def compile_int_literal(val):
     result = []
     # mov rax, VAL
@@ -422,6 +461,24 @@ def compile_string_check(context):
     return result
 
 
+def compile_bool_check(context):
+    error_block = compile_die(b"not a bool :(\n", context)
+
+    result = []
+    # A value is a bool if the top two bits are 0b11.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xc7])
+    # shr rdi, 62
+    result.extend([0x48, 0xc1, 0xef, 62])
+    # cmp rdi, 2
+    result.extend([0x48, 0x81, 0xff] + int_32bit(3))
+    # je END_OF_ERROR_BLOCK
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
+    
+    result.extend(error_block)
+    return result
+
+
 def compile_exit(args, context):
     assert len(args) == 1, "exit takes exactly one argument"
 
@@ -489,6 +546,8 @@ def compile_expr(subtree, context):
             return compile_exit(args, context)
         elif fun_name == '+':
             return compile_add(args, context)
+        elif fun_name == 'bool-to-string':
+            return compile_bool_to_string(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
