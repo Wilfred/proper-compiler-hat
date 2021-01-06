@@ -24,6 +24,11 @@
 
 ;;; Code:
 
+(defvar wlp-font-lock-keywords
+  `(
+    (,(regexp-opt '("true" "false"))
+     (0 'font-lock-keyword-face))))
+
 ;;;###autoload
 (add-to-list 'auto-mode-alist (cons "\\.wlp\\'" 'wlp-mode))
 
@@ -45,6 +50,7 @@
   "Major mode for editing Wilfred Lisp.
 
 \\{wlp-mode-map}"
+  (setq-local font-lock-defaults '(wlp-font-lock-keywords))
   (setq-local comment-start "; "))
 
 
