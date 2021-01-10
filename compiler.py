@@ -289,18 +289,16 @@ def compile_print(args, context):
 
     result = []
     result.extend(compile_expr(args[0], context))
-    # TODO: we need the ability to get length of strings created at runtime.
-    # TODO: this assumes the last argument was a string literal.
-    if context['string_literals']:
-        last_literal = list(context['string_literals'].keys())[-1]
-        last_literal_len = len(last_literal)
-    else:
-        last_literal_len = 0
 
     result.extend(compile_string_check(context))
     result.extend(compile_tagged_string_to_ptr())
 
-    # The first 8 bytes of a string store the length.
+    # TODO: we need the ability to get length of strings created at runtime.
+    # The first 8 bytes of a string store the length, so copy it to rdx.
+    # mov rdx, [rax]
+    result.extend([0x48, 0x8B, 0x10])
+
+    # After those bytes, we have the string data itself.
     # add rax, 8
     result.extend([0x48, 0x05] + int_32bit(8))
 
@@ -313,8 +311,6 @@ def compile_print(args, context):
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 1 (1 = stdout)
     ])
 
-    # mov len(literal) %rdx
-    result.extend([0x48, 0xba] + int_64bit(last_literal_len))
     # syscall
     result.extend([0x0f, 0x05])
 
