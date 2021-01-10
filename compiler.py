@@ -360,6 +360,20 @@ def compile_bool_to_string(args, context):
     return result
 
 
+def compile_not(args, context):
+    assert len(args) == 1, "not takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_bool_check(context))
+
+    # toggle the top bit.
+    # btc rax, 0
+    result.extend([0x48, 0x0F, 0xBA, 0xF8, 0x00])
+
+    return result
+
+
 def compile_int_literal(val):
     result = []
     # mov rax, VAL
@@ -548,6 +562,8 @@ def compile_expr(subtree, context):
             return compile_add(args, context)
         elif fun_name == 'bool-to-string':
             return compile_bool_to_string(args, context)
+        elif fun_name == 'not':
+            return compile_not(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:

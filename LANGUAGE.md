@@ -66,3 +66,11 @@ false
 ```
 
 Converts a boolean value to a string representation.
+
+## `not` function
+
+```
+(not false) ; true
+```
+
+Negates a boolean value.
