@@ -1,6 +1,6 @@
 ; foo
 (print "hello, world\n")
-(print "hello, again\n")
+(print (if (not true) "blah" "hello, again\n"))
 (exit (+ 1 (+ 2 3)))
 
 ; DEBUGGING NOTES
