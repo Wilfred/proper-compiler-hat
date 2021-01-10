@@ -74,3 +74,12 @@ Converts a boolean value to a string representation.
 ```
 
 Negates a boolean value.
+
+## `if` primtive
+
+```
+(if true "true value" "ignored value") ; true value
+```
+
+Evaluates the second or the third argument depending on the boolean
+value of the first argument.

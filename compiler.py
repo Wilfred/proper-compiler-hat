@@ -374,6 +374,37 @@ def compile_not(args, context):
     return result
 
 
+def compile_if(args, context):
+    assert len(args) == 3, "if takes exactly three arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_bool_check(context))
+
+    # Zero the top two bits.
+    # TODO: Factor out a 'from tagged bool' helper.
+    # shl rax, 2
+    result.extend([0x48, 0xC1, 0xE0, 0x02])
+    # shr rax, 2
+    result.extend([0x48, 0xC1, 0xE8, 0x02])
+
+    true_block = compile_expr(args[1], context)
+
+    false_block = compile_expr(args[2], context)
+    # jmp END_OF_TRUE_BLOCk
+    false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
+
+    # cmp rax, 1
+    result.extend([0x48, 0x3d] + int_32bit(1))
+    # je TRUE_BLOCK (straight after FALSE_BLOCK)
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(false_block)))
+
+    result.extend(false_block)
+    result.extend(true_block)
+
+    return result
+
+
 def compile_int_literal(val):
     result = []
     # mov rax, VAL
@@ -564,6 +595,8 @@ def compile_expr(subtree, context):
             return compile_bool_to_string(args, context)
         elif fun_name == 'not':
             return compile_not(args, context)
+        elif fun_name == 'if':
+            return compile_if(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
