@@ -317,6 +317,24 @@ def compile_print(args, context):
     return result
 
 
+def compile_string_length(args, context):
+    assert len(args) == 1, "string-length takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+
+    result.extend(compile_string_check(context))
+    result.extend(compile_tagged_string_to_ptr())
+
+    # The first 8 bytes of a string store the length, so copy it to rax.
+    # mov rax, [rax]
+    result.extend([0x48, 0x8B, 0x00])
+
+    result.extend(compile_to_tagged_int())
+
+    return result
+
+
 def compile_bool_to_string(args, context):
     assert len(args) == 1, "bool-to-string takes exactly one argument"
 
@@ -593,6 +611,8 @@ def compile_expr(subtree, context):
             return compile_not(args, context)
         elif fun_name == 'if':
             return compile_if(args, context)
+        elif fun_name == 'string-length':
+            return compile_string_length(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:

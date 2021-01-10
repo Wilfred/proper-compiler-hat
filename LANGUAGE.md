@@ -83,3 +83,11 @@ Negates a boolean value.
 
 Evaluates the second or the third argument depending on the boolean
 value of the first argument.
+
+## `string-length` function
+
+```
+(string-length "foo") ; 3
+```
+
+Returns the length of a string as an integer.
