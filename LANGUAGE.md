@@ -75,7 +75,7 @@ Converts a boolean value to a string representation.
 
 Negates a boolean value.
 
-## `if` primtive
+## `if` primitive
 
 ```
 (if true "true value" "ignored value") ; true value
