@@ -14,6 +14,6 @@ dependencies (not even libc) but are completely unportable.
 
 ## License
 
-Code is under BSD license.
+All the code in this repository is under the MIT license, see LICENSE.txt.
 
 Logo is [from Freepik](https://www.freepik.com/free-vector/gentelman-vintage-accessories-doodle-black-set_3888767.htm).
