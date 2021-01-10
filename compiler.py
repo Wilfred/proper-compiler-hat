@@ -151,18 +151,35 @@ def int_32bit(num):
     assert num >= 0, "Signed numbers are not supported"
     return list(num.to_bytes(4, 'little'))
 
+TAG_BITS = 2
 
 # TAGGING SCHEME
 #
-# We use the top two bits to tag the runtime type, leaving 64-bits for
+# We use the top two bits to tag the runtime type, leaving 62-bits for
 # content.
 #
 # So for the last byte (since x86_64 is LSB and we want the most
 # significant byte):
 #
-# 0b00xxxxxx: Integer
-# 0b10xxxxxx: String
-# 0b11xxxxxx: Boolean
+# 0b00xxxxxx
+INTEGER_TAG_BYTE = 0b00000000
+# 0b10xxxxxx
+STRING_TAG_BYTE  = 0b10000000
+# 0b11xxxxxx
+BOOLEAN_TAG_BYTE = 0b11000000
+
+def zero_rax_tag_bits():
+    """Set the tag bits to zero in register rax.
+
+    """
+    result = []
+    # shl rax, TAG_BITS
+    result.extend([0x48, 0xC1, 0xE0, TAG_BITS])
+    # shr rax, TAG_BITS
+    result.extend([0x48, 0xC1, 0xE8, TAG_BITS])
+
+    return result
+
 
 def compile_to_tagged_int():
     """Emit instructions that convert a 64-bit integer value to a tagged
@@ -171,15 +188,7 @@ def compile_to_tagged_int():
     Overflows wrap around.
 
     """
-    # Zero the top two bits.
-
-    result = []
-    # shl rax, 2
-    result.extend([0x48, 0xC1, 0xE0, 0x02])
-    # shr rax, 2
-    result.extend([0x48, 0xC1, 0xE8, 0x02])
-
-    return result
+    return zero_rax_tag_bits()
 
 
 def compile_from_tagged_int():
@@ -197,12 +206,12 @@ def compile_ptr_to_tagged_string():
 
     result = []
 
-    # Write 0b10000000 to the most significant byte of rdx.
+    # Write STRING_TAG_BYTE to the most significant byte of rdi.
     # TODO: how can we be sure that real string pointers don't have
-    # the top two bits set?
+    # the tag bits (the top two bits) set?
 
-    # mov rdi, 0x8000000000000000
-    result.extend([0x48, 0xbf] + int_64bit(0x8000000000000000))
+    # mov rdi, STRING_TAG
+    result.extend([0x48, 0xbf] + int_64bit(STRING_TAG_BYTE << (8 * 7)))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xf8])
 
@@ -210,15 +219,7 @@ def compile_ptr_to_tagged_string():
 
 
 def compile_tagged_string_to_ptr():
-    # Zero the top two bits.
-
-    result = []
-    # shl rax, 2
-    result.extend([0x48, 0xC1, 0xE0, 0x02])
-    # shr rax, 2
-    result.extend([0x48, 0xC1, 0xE8, 0x02])
-
-    return result
+    return zero_rax_tag_bits()
 
 
 def num_bytes(byte_tmpl):
@@ -342,11 +343,7 @@ def compile_bool_to_string(args, context):
     result.extend(compile_expr(args[0], context))
     result.extend(compile_bool_check(context))
 
-    # Zero the top two bits.
-    # shl rax, 2
-    result.extend([0x48, 0xC1, 0xE0, 0x02])
-    # shr rax, 2
-    result.extend([0x48, 0xC1, 0xE8, 0x02])
+    result.extend(zero_rax_tag_bits())
 
     true_string_addr = string_lit_offset(b"true", context)
     false_string_addr = string_lit_offset(b"false", context)
@@ -395,19 +392,13 @@ def compile_if(args, context):
     result.extend(compile_expr(args[0], context))
     result.extend(compile_bool_check(context))
 
-    # Zero the top two bits.
-    # TODO: Factor out a 'from tagged bool' helper.
-    # shl rax, 2
-    result.extend([0x48, 0xC1, 0xE0, 0x02])
-    # shr rax, 2
-    result.extend([0x48, 0xC1, 0xE8, 0x02])
-
     true_block = compile_expr(args[1], context)
-
     false_block = compile_expr(args[2], context)
+
     # jmp END_OF_TRUE_BLOCk
     false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
 
+    result.extend(zero_rax_tag_bits())
     # cmp rax, 1
     result.extend([0x48, 0x3d] + int_32bit(1))
     # je TRUE_BLOCK (straight after FALSE_BLOCK)
@@ -443,12 +434,13 @@ def compile_string_literal(value, context):
 
 
 def compile_bool_literal(value):
+    boolean_tag = BOOLEAN_TAG_BYTE << (8 * 7)
     if value:
-        # mov rax, (bool_tag | 1)
-        return [0x48, 0xb8] + int_64bit(0xc000000000000001)
+        # mov rax, (BOOLEAN_TAG | 1)
+        return [0x48, 0xb8] + int_64bit(boolean_tag | 1)
     else:
-        # mov rax, (bool_tag | 0)
-        return [0x48, 0xb8] + int_64bit(0xc000000000000000)
+        # mov rax, (BOOLEAN_TAG | 0)
+        return [0x48, 0xb8] + int_64bit(boolean_tag)
 
 
 def compile_int_check(context):
@@ -458,8 +450,9 @@ def compile_int_check(context):
     # A value is an integer if the top two bits are 0b00.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xc7])
-    # shr rdi, 62
-    result.extend([0x48, 0xc1, 0xef, 62])
+
+    # shr rdi, 64 - TAG_BITS
+    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
     # cmp rdi, 0
     result.extend([0x48, 0x81, 0xff] + int_32bit(0))
     # je END_OF_ERROR_BLOCK
@@ -509,8 +502,8 @@ def compile_string_check(context):
     # A value is a string if the top two bits are 0b10.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xc7])
-    # shr rdi, 62
-    result.extend([0x48, 0xc1, 0xef, 62])
+    # shr rdi, 64 - TAG_BITS
+    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
     # cmp rdi, 2
     result.extend([0x48, 0x81, 0xff] + int_32bit(2))
     # je END_OF_ERROR_BLOCK
@@ -527,8 +520,8 @@ def compile_bool_check(context):
     # A value is a bool if the top two bits are 0b11.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xc7])
-    # shr rdi, 62
-    result.extend([0x48, 0xc1, 0xef, 62])
+    # shr rdi, 64 - TAG_BITS
+    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
     # cmp rdi, 2
     result.extend([0x48, 0x81, 0xff] + int_32bit(3))
     # je END_OF_ERROR_BLOCK
