@@ -1,8 +1,6 @@
-# Proper Compiler Hat
+<img align="right" width="200" height="200" src="https://github.com/Wilfred/proper-compiler-hat/blob/master/pch_hat.png?raw=true" alt="logo">
 
-<p align="right">
-  <img src="https://github.com/Wilfred/proper-compiler-hat/blob/master/pch_hat.png?raw=true" alt="logo"/>
-</p>
+# Proper Compiler Hat
 
 *Wearing a Proper Compiler Hat* refers to a program that emits machine
 code directly. No external compiler backend (e.g. LLVM), no external
