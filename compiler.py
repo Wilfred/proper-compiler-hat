@@ -292,6 +292,11 @@ def compile_print(args, context):
     result.extend(compile_expr(args[0], context))
 
     result.extend(compile_string_check(context))
+
+    # Save the value, so we can restore it after the syscall.
+    # push rax
+    result.extend([0x50])
+    
     result.extend(compile_tagged_string_to_ptr())
 
     # TODO: we need the ability to get length of strings created at runtime.
@@ -314,6 +319,11 @@ def compile_print(args, context):
 
     # syscall
     result.extend([0x0f, 0x05])
+
+    # Use the argument as the return value.
+    # TODO: define a null type.
+    # pop rax
+    result.extend([0x58])
 
     return result
 
