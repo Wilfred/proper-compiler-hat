@@ -425,8 +425,7 @@ def compile_local_variable(var_name, context):
 
 
 def compile_let(args, context):
-    # TODO: support do/progn evaluation in let.
-    assert len(args) == 2, "let takes exactly two arguments"
+    assert len(args) >= 2, "let takes at least two arguments"
 
     vars_and_exprs = args[0]
     assert vars_and_exprs[0] == LIST, "Expected a list of variables and their values."
@@ -453,7 +452,8 @@ def compile_let(args, context):
         # mov [rsp + offset], rax
         result.extend([0x48, 0x89, 0x84, 0x24] + int_32bit(offset))
 
-    result.extend(compile_expr(args[1], context))
+    for expr in args[1:]:
+        result.extend(compile_expr(expr, context))
 
     # add rsp, 8 * len(vars)
     result.extend([0x48, 0x81, 0xC4] + int_32bit(8 * len(vars)))
