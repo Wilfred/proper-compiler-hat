@@ -95,8 +95,9 @@ Returns the length of a string as an integer.
 ## `let` primitive
 
 ```
-(let (x (print "hello "))
-  (print "world"))
+(let (y "bye world"
+      x "hello world")
+  (print x))
 ```
 
 Assigns local variables to the values specified, then evaluates the

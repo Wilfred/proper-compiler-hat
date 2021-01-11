@@ -394,11 +394,12 @@ def compile_not(args, context):
 
     return result
 
-def local_var_offset(var_name, context):
-    """Add `var_name` to `context`, and return its offset.
+def local_var_offset(var, context):
+    """Add `var` to `context`, and return its offset.
 
     """
-    assert var_name[0] == SYMBOL, "Expected a symbol"
+    kind, var_name = var
+    assert kind == SYMBOL, "Expected a symbol, got {!r}".format(kind)
 
     # If we've seen this variable name before, reuse the previous offset.
     if var_name in context['locals']:
@@ -410,6 +411,17 @@ def local_var_offset(var_name, context):
     context['locals'][var_name] = offset
 
     return offset
+
+
+def compile_local_variable(var_name, context):
+    assert isinstance(var_name, str)
+
+    assert var_name in context['locals'], "Local variable is not bound"
+
+    result = []
+    # mov rax, [rsp + offset]
+    result.extend([0x48, 0x8B, 0x84, 0x24] + int_32bit(context['locals'][var_name]))
+    return result
 
 
 def compile_let(args, context):
@@ -683,6 +695,8 @@ def compile_expr(subtree, context):
         return compile_string_literal(value, context)
     elif kind == BOOLEAN:
         return compile_bool_literal(value)
+    elif kind == SYMBOL:
+        return compile_local_variable(value, context)
     else:
         assert False, "Expected function call, got {}".format(kind)
 
