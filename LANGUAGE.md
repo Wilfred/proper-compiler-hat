@@ -91,3 +91,13 @@ value of the first argument.
 ```
 
 Returns the length of a string as an integer.
+
+## `let` primitive
+
+```
+(let (x (print "hello "))
+  (print "world"))
+```
+
+Assigns local variables to the values specified, then evaluates the
+last expression.

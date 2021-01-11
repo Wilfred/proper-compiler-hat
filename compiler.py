@@ -394,6 +394,63 @@ def compile_not(args, context):
 
     return result
 
+def local_var_offset(var_name, context):
+    """Add `var_name` to `context`, and return its offset.
+
+    """
+    assert var_name[0] == SYMBOL, "Expected a symbol"
+
+    # If we've seen this variable name before, reuse the previous offset.
+    if var_name in context['locals']:
+        return context['locals'][var_name]
+
+    # Remember this new local variable, and compute its offset.
+    # Each local variable is one word (64 bits).
+    offset = len(context['locals']) * 8
+    context['locals'][var_name] = offset
+
+    return offset
+
+
+def compile_let(args, context):
+    # TODO: support do/progn evaluation in let.
+    assert len(args) == 2, "let takes exactly two arguments"
+
+    vars_and_exprs = args[0]
+    assert vars_and_exprs[0] == LIST, "Expected a list of variables and their values."
+    vars_and_exprs = vars_and_exprs[1]
+
+    assert len(vars_and_exprs) % 2 == 0, "Expected a list of variables and their values (got an odd list)"
+    vars = vars_and_exprs[::2]
+    exprs = vars_and_exprs[1::2]
+    unique_vars = set(vars)
+
+    result = []
+    # TODO: this assumes that let doesn't nest.
+    # Each local variable is one word (64 bits).
+    # sub rsp, 8 * len(vars)
+    result.extend([0x48, 0x81, 0xEC] + int_32bit(8 * len(unique_vars)))
+
+    old_locals = context['locals'].copy()
+
+    for i, (var, expr) in enumerate(zip(vars, exprs)):
+        result.extend(compile_expr(expr, context))
+
+        # Store the value on the stack.
+        offset = local_var_offset(var, context)
+        # mov [rsp + offset], rax
+        result.extend([0x48, 0x89, 0x84, 0x24] + int_32bit(offset))
+
+    result.extend(compile_expr(args[1], context))
+
+    # add rsp, 8 * len(vars)
+    result.extend([0x48, 0x81, 0xC4] + int_32bit(8 * len(vars)))
+
+    # Restore previous locals.
+    context['locals'] = old_locals
+    
+    return result
+
 
 def compile_if(args, context):
     assert len(args) == 3, "if takes exactly three arguments"
@@ -616,6 +673,8 @@ def compile_expr(subtree, context):
             return compile_if(args, context)
         elif fun_name == 'string-length':
             return compile_string_length(args, context)
+        elif fun_name == 'let':
+            return compile_let(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
@@ -683,7 +742,7 @@ def main(filename):
     tokens = list(lex(src))
     ast = parse(tokens)
 
-    context = {'string_literals': {}, 'data_offset': 0}
+    context = {'string_literals': {}, 'data_offset': 0, 'locals': {}}
 
     main_fun = compile_main(ast, context)
     header = elf_header_instructions(main_fun, context)
