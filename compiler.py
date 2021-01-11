@@ -419,8 +419,8 @@ def compile_local_variable(var_name, context):
     assert var_name in context['locals'], "Local variable is not bound"
 
     result = []
-    # mov rax, [rsp + offset]
-    result.extend([0x48, 0x8B, 0x84, 0x24] + int_32bit(context['locals'][var_name]))
+    # mov rax, [rbp + offset]
+    result.extend([0x48, 0x8B, 0x85] + int_32bit(context['locals'][var_name]))
     return result
 
 
@@ -437,20 +437,19 @@ def compile_let(args, context):
     unique_vars = set(vars)
 
     result = []
-    # TODO: this assumes that let doesn't nest.
     # Each local variable is one word (64 bits).
     # sub rsp, 8 * len(vars)
     result.extend([0x48, 0x81, 0xEC] + int_32bit(8 * len(unique_vars)))
 
     old_locals = context['locals'].copy()
 
-    for i, (var, expr) in enumerate(zip(vars, exprs)):
+    for var, expr in zip(vars, exprs):
         result.extend(compile_expr(expr, context))
 
         # Store the value on the stack.
         offset = local_var_offset(var, context)
-        # mov [rsp + offset], rax
-        result.extend([0x48, 0x89, 0x84, 0x24] + int_32bit(offset))
+        # mov [rbp + offset], rax
+        result.extend([0x48, 0x89, 0x85] + int_32bit(offset))
 
     for expr in args[1:]:
         result.extend(compile_expr(expr, context))
@@ -704,6 +703,10 @@ def compile_expr(subtree, context):
 def compile_main(ast, context):
     # The raw bytes of the instructions for the main function.
     main_fun_tmpl = []
+
+    # Ensure rbp is set correctly.
+    # mov rbp, rsp
+    main_fun_tmpl.extend([0x48, 0x89, 0xE5])
 
     for subtree in ast:
         main_fun_tmpl.extend(compile_expr(subtree, context))
