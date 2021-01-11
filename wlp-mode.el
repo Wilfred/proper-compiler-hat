@@ -27,6 +27,9 @@
 (defvar wlp-font-lock-keywords
   `(
     (,(regexp-opt '("true" "false"))
+     (0 'font-lock-constant-face))
+
+    (,(regexp-opt '("let" "if"))
      (0 'font-lock-keyword-face))))
 
 ;;;###autoload
