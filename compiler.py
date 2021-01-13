@@ -463,6 +463,26 @@ def compile_let(args, context):
     return result
 
 
+def compile_set(args, context):
+    assert len(args) == 2, "set! takes two arguments"
+
+    var = args[0]
+    assert var[0] == SYMBOL, "Expected a symbol to assign to"
+    var_name = var[1]
+    assert var_name in context['locals'], "Local variable is not bound"
+
+    result = []
+
+    result.extend(compile_expr(args[1], context))
+    
+    # mov [rbp + offset], rax
+    result.extend([0x48, 0x89, 0x85] + int_32bit(context['locals'][var_name]))
+
+    # TODO: once we have null, set! should return null.
+    
+    return result
+
+
 def compile_if(args, context):
     assert len(args) == 3, "if takes exactly three arguments"
 
@@ -686,6 +706,8 @@ def compile_expr(subtree, context):
             return compile_string_length(args, context)
         elif fun_name == 'let':
             return compile_let(args, context)
+        elif fun_name == 'set!':
+            return compile_set(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:

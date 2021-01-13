@@ -103,3 +103,14 @@ Returns the length of a string as an integer.
 
 Assigns local variables to the values specified, then evaluates the
 last expression.
+
+## `set!` primitive
+
+```
+(let (x 1)
+  (set! x (+ x 1))
+  (exit x))
+```
+
+Updates a local variable to a new value. The variable must be already
+bound with `let`.
