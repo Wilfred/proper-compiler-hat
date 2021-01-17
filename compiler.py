@@ -148,8 +148,7 @@ def int_32bit(num):
     """Return `num` as a list of bytes of its 32-bit representation.
 
     """
-    assert num >= 0, "Signed numbers are not supported"
-    return list(num.to_bytes(4, 'little'))
+    return list(num.to_bytes(4, 'little', signed=True))
 
 TAG_BITS = 2
 
