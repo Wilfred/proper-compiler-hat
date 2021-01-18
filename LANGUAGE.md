@@ -114,3 +114,17 @@ last expression.
 
 Updates a local variable to a new value. The variable must be already
 bound with `let`.
+
+## `while` primitive
+
+```
+(while true
+  (print "hello world\n"))
+```
+
+If the first argument evalutes to `true`, evaluate the second
+argument, then repeat.
+
+Currently returns `0` but this is an implementation detail that will
+change.
+

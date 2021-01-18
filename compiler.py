@@ -482,6 +482,53 @@ def compile_set(args, context):
     return result
 
 
+def compile_while(args, context):
+    """
+    WHILE_START:
+      eval arg[0]
+      cmp rax, 0
+      je WHILE_END
+      eval arg[1]
+      jmp WHILE_START
+    WHILE_END:
+      mov rax, TAGGED_ZERO
+    """
+    assert len(args) == 2, "while takes two arguments"
+
+    loop_header = []
+    loop_header.extend(compile_expr(args[0], context))
+    loop_header.extend(compile_bool_check(context))
+
+    loop_header.extend(zero_rax_tag_bits())
+    # cmp rax, 0
+    loop_header.extend([0x48, 0x3d] + int_32bit(0))
+
+    # eval body
+    loop_body = compile_expr(args[1], context)
+
+    # TODO: currently num_bytes assumes that all placeholders are 8
+    # bytes, so we can't use it with jumps with 4 byte offsets.
+    je_num_bytes = 6
+    jmp_num_bytes = 5
+    result_bytes = num_bytes(loop_header) + je_num_bytes + num_bytes(loop_body) + jmp_num_bytes
+
+    result = []
+    result.extend(loop_header)
+    while_end = num_bytes(loop_body) + jmp_num_bytes
+    # jmp while_end
+    result.extend([0x0f, 0x84] + int_32bit(while_end))
+
+    result.extend(loop_body)
+    
+    # jmp WHILE_START
+    result.extend([0xe9] + int_32bit(-1 * result_bytes))
+
+    # We need to return a legal value, so arbitrarily choose 0.
+    result.extend(compile_int_literal(0))
+
+    return result
+
+
 def compile_if(args, context):
     assert len(args) == 3, "if takes exactly three arguments"
 
@@ -707,6 +754,8 @@ def compile_expr(subtree, context):
             return compile_let(args, context)
         elif fun_name == 'set!':
             return compile_set(args, context)
+        elif fun_name == 'while':
+            return compile_while(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
