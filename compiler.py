@@ -415,7 +415,7 @@ def local_var_offset(var, context):
 def compile_local_variable(var_name, context):
     assert isinstance(var_name, str)
 
-    assert var_name in context['locals'], "Local variable is not bound"
+    assert var_name in context['locals'], "Variable `{}` is not bound".format(var_name)
 
     result = []
     # mov rax, [rbp + offset]
@@ -468,7 +468,7 @@ def compile_set(args, context):
     var = args[0]
     assert var[0] == SYMBOL, "Expected a symbol to assign to"
     var_name = var[1]
-    assert var_name in context['locals'], "Local variable is not bound"
+    assert var_name in context['locals'], "Variable `{}` is not bound".format(var_name)
 
     result = []
 
