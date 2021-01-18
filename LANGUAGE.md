@@ -137,3 +137,25 @@ change.
 ```
 
 Evaluates its arguments in order, and returns the last value.
+
+## `<` function
+
+```
+(< 1 2) ; true
+(< 2 2) ; false
+(< 3 2) ; false
+```
+
+Returns true if the first argument is strictly less than the
+second. Requires integer arguments.
+
+## `>` function
+
+```
+(> 1 2) ; false
+(> 2 2) ; false
+(> 3 2) ; true
+```
+
+Returns true if the first argument is strictly greater than the
+second. Requires integer arguments.

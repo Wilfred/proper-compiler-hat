@@ -564,6 +564,102 @@ def compile_do(args, context):
     return result
 
 
+def compile_less_than(args, context):
+    assert len(args) == 2, "< requires two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+
+    # pop rdi
+    result.extend([0x5f])
+
+    # cmp rdi, rax
+    result.extend([0x48, 0x39, 0xC7])
+
+    # write 0x00 or 0x01 to the low byte of rax.
+    # seto al
+    result.extend([0x0F, 0x90, 0xC0])
+
+    # toggle the least significant bit.
+    # btc rax, 0
+    result.extend([0x48, 0x0F, 0xBA, 0xF8, 0x00])
+
+    # zero the upper three bytes of rax
+    # shl rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    # shr rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE8, 64-8])
+
+    # Set the boolean tag
+    # mov rdi, BOOLEAN_TAG
+    boolean_tag = BOOLEAN_TAG_BYTE << (8 * 7)
+    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xF8])
+    
+    return result
+
+
+def compile_greater_than(args, context):
+    assert len(args) == 2, "> requires two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+
+    # pop rdi
+    result.extend([0x5f])
+
+    # cmp rdi, rax
+    result.extend([0x48, 0x39, 0xC7])
+
+    # write 0x00 or 0x01 to the low byte of rax.
+    # seto al
+    result.extend([0x0F, 0x90, 0xC0])
+
+    # zero the upper three bytes of rax
+    # shl rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    # shr rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE8, 64-8])
+
+    # Set the boolean tag
+    # mov rdi, BOOLEAN_TAG
+    boolean_tag = BOOLEAN_TAG_BYTE << (8 * 7)
+    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xF8])
+    
+    return result
+
+
 def compile_int_literal(val):
     result = []
     # mov rax, VAL
@@ -768,6 +864,10 @@ def compile_expr(subtree, context):
             return compile_while(args, context)
         elif fun_name == 'do':
             return compile_do(args, context)
+        elif fun_name == '<':
+            return compile_less_than(args, context)
+        elif fun_name == '>':
+            return compile_greater_than(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
@@ -831,7 +931,6 @@ def string_lit_offset(value, context):
     context['data_offset'] += len(value) + 8
 
     return offset
-
 
 
 def main(filename):
