@@ -128,3 +128,12 @@ argument, then repeat.
 Currently returns `0` but this is an implementation detail that will
 change.
 
+## `do` primitive
+
+```
+(do
+  (print "hello\n")
+  1) ; 1
+```
+
+Evaluates its arguments in order, and returns the last value.

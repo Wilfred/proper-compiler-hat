@@ -554,6 +554,16 @@ def compile_if(args, context):
     return result
 
 
+def compile_do(args, context):
+    assert len(args) > 0, "do requires at least one argument"
+
+    result = []
+    for arg in args:
+        result.extend(compile_expr(arg, context))
+
+    return result
+
+
 def compile_int_literal(val):
     result = []
     # mov rax, VAL
@@ -756,6 +766,8 @@ def compile_expr(subtree, context):
             return compile_set(args, context)
         elif fun_name == 'while':
             return compile_while(args, context)
+        elif fun_name == 'do':
+            return compile_do(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
