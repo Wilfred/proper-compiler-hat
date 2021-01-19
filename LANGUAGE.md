@@ -138,6 +138,23 @@ change.
 
 Evaluates its arguments in order, and returns the last value.
 
+## `=` function
+
+```
+(= 1 1) ; true
+(= 1 2) ; true
+
+(= "a" "a") ; true
+(= "a" "b") ; false
+
+(= "a" 1) ; false
+```
+
+Compares its first argument wtih its second, and returns true if they
+are equal. Integers are compared by value, strings by reference.
+
+An integer and a string are never equal.
+
 ## `<` function
 
 ```

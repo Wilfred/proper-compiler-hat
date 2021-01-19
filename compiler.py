@@ -67,7 +67,7 @@ def lex(src):
                     i += 1
                 
             i += 1
-        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>']:
+        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=']:
             if token is None:
                 token = c
             else:
@@ -573,6 +573,46 @@ def compile_do(args, context):
     return result
 
 
+def compile_equals(args, context):
+    assert len(args) == 2, "= requires two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+
+    # pop rdi
+    result.extend([0x5f])
+
+    # cmp rdi, rax
+    result.extend([0x48, 0x39, 0xC7])
+
+    # write 0x00 or 0x01 to the low byte of rax.
+    # sete al
+    result.extend([0x0F, 0x94, 0xC0])
+
+    # zero the upper three bytes of rax
+    # shl rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    # shr rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE8, 64-8])
+
+    # Set the boolean tag
+    # mov rdi, BOOLEAN_TAG
+    boolean_tag = BOOLEAN_TAG_BYTE << (8 * 7)
+    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xF8])
+    
+    return result
+
+
 def compile_less_than(args, context):
     assert len(args) == 2, "< requires two arguments"
 
@@ -876,6 +916,8 @@ def compile_expr(subtree, context):
             return compile_less_than(args, context)
         elif fun_name == '>':
             return compile_greater_than(args, context)
+        elif fun_name == '=':
+            return compile_equals(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:

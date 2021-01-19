@@ -1,0 +1,15 @@
+(print "(= 1 1): ")
+(print (if (= 1 1) "true\n" "false\n"))
+
+(print "(= 1 2): ")
+(print (if (= 1 2) "true\n" "false\n"))
+
+(print "(= \"a\" \"a\"): ")
+(print (if (= "a" "a") "true\n" "false\n"))
+
+(print "(= \"a\" \"b\"): ")
+(print (if (= "a" "b") "true\n" "false\n"))
+
+(print "(= 1 \"foo\"): ")
+(print (if (= 1 "foo") "true\n" "false\n"))
+
