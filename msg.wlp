@@ -9,6 +9,7 @@
 ; because we haven't set up section headers. gdb works fine though.
 ;
 ; $ gdb hello
+; (gdb) set disassembly-flavor intel
 ; (gdb) starti
 ; (gdb) x/5i $pc
 ;
