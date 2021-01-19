@@ -1,0 +1,2 @@
+; Test escape sequences.
+(print "a \" \\ b \n")

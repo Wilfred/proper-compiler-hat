@@ -26,7 +26,7 @@ Integers are 62-bit, and wrap around on overflow.
 "bar\nbaz"
 ```
 
-The only backslash code supported is `\n`.
+The only backslash sequences supported are `\n`, `\"` and `\\`.
 
 ## Booleans
 

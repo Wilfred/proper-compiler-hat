@@ -32,8 +32,14 @@ def unescape(string_lit):
             if string_lit[i + 1] == "n":
                 res = res + "\n"
                 i += 2
+            elif string_lit[i + 1] == '"':
+                res = res + '"'
+                i += 2
+            elif string_lit[i + 1] == "\\":
+                res = res + "\\"
+                i += 2
             else:
-                assert False, "Invalid escape sequence"
+                assert False, "Invalid escape sequence: \\{}".format(string_lit[i + 1])
         else:
             res = res + c
             i += 1
@@ -70,7 +76,10 @@ def lex(src):
         elif c == '"':
             end_i = i + 1
             while end_i < len(src) and src[end_i] != '"':
-                end_i += 1
+                if src[end_i] == '\\':
+                    end_i += 2
+                else:
+                    end_i += 1
 
             assert src[end_i] == '"'
             yield src[i:end_i + 1]
