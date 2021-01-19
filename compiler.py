@@ -589,13 +589,12 @@ def compile_less_than(args, context):
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
 
-    # write 0x00 or 0x01 to the low byte of rax.
-    # seto al
-    result.extend([0x0F, 0x90, 0xC0])
+    # A value is less if Sign Flag != Overflow Flag
+    # (this is what the jl instruction does).
 
-    # toggle the least significant bit.
-    # btc rax, 0
-    result.extend([0x48, 0x0F, 0xBA, 0xF8, 0x00])
+    # write 0x00 or 0x01 to the low byte of rax.
+    # setl al
+    result.extend([0x0F, 0x9C, 0xC0])
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
@@ -640,8 +639,8 @@ def compile_greater_than(args, context):
     result.extend([0x48, 0x39, 0xC7])
 
     # write 0x00 or 0x01 to the low byte of rax.
-    # seto al
-    result.extend([0x0F, 0x90, 0xC0])
+    # setg al
+    result.extend([0x0F, 0x9F, 0xC0])
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
