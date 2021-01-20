@@ -45,6 +45,15 @@
 
     ;; Newlines end comments.
     (modify-syntax-entry ?\n ">" table)
+
+    ;; Characters that are valid in symbols.
+    (modify-syntax-entry ?! "_" table)
+    (modify-syntax-entry ?? "_" table)
+    (modify-syntax-entry ?= "_" table)
+    (modify-syntax-entry ?< "_" table)
+    (modify-syntax-entry ?> "_" table)
+    (modify-syntax-entry ?+ "_" table)
+    (modify-syntax-entry ?- "_" table)
     
     table))
 
