@@ -272,7 +272,7 @@ def elf_header_instructions(main_instructions, string_literals):
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
 
-    rodata_size = sum(len(lit) for lit in string_literals)
+    rodata_size = sum(num_bytes_string_lit(lit) for lit in string_literals)
     prog_length = num_bytes(header_tmpl) + len(main_instructions) + rodata_size
 
     result = []
@@ -963,6 +963,14 @@ def compile_main(ast, context):
     return result
 
 
+def num_bytes_string_lit(value):
+    # String literals are stored as:
+    # * a 64-bit number representing the length
+    # * the data itself
+    # * a null byte for convenient linux interop
+    return 8 + len(value) + 1
+
+
 def string_lit_offset(value, context):
     """Add `value` to context, and return its offset.
 
@@ -976,9 +984,7 @@ def string_lit_offset(value, context):
     # Remember this new string literal, and compute its offset.
     offset = context['data_offset']
     context['string_literals'][value] = offset
-    # The new offset will be the size of this string, including its
-    # length data, plus a null byte to make C interop easier.
-    context['data_offset'] += len(value) + 8 + 1
+    context['data_offset'] += num_bytes_string_lit(value)
 
     return offset
 
