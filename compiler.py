@@ -851,6 +851,44 @@ def compile_exit(args, context):
     return result
 
 
+def compile_open(args, context):
+    assert len(args) == 1, "open! takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_string_check(context))
+    
+    result.extend(compile_tagged_string_to_ptr())
+
+    # String data starts with the size, then the string data
+    # itself. Strings are already null-terminated.
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
+    # Previous expression is in rax, move to 1st argument register.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # 1 = O_WRONLY
+    # mov rsi, 1
+    result.extend([0x48, 0xBE] + int_64bit(1))
+
+    # 0 (no flags for umode_t)
+    # mov rdx, 0
+    result.extend([0x48, 0xBA] + int_64bit(0))
+    
+    # mov eax, 2 (2 = sys_open)
+    result.extend([0xb8, 0x02, 0x00, 0x00, 0x00])
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # We get a file descriptor, tag as an integer.
+    result.extend(compile_to_tagged_int())
+
+    return result
+
+
 def compile_add(args, context):
     assert len(args) == 2, "+ takes exactly two arguments"
 
@@ -918,6 +956,8 @@ def compile_expr(subtree, context):
             return compile_greater_than(args, context)
         elif fun_name == '=':
             return compile_equals(args, context)
+        elif fun_name == 'open!':
+            return compile_open(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:

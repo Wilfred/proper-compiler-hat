@@ -176,3 +176,11 @@ second. Requires integer arguments.
 
 Returns true if the first argument is strictly greater than the
 second. Requires integer arguments.
+
+## `open!` function
+
+```
+(open! "/tmp/foo") ; 123
+```
+
+Opens the path specified for writing. Returns the file descriptor.
