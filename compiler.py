@@ -869,9 +869,12 @@ def compile_open(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # 1 = O_WRONLY
+    # https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/fcntl.h
+    o_wronly = 0o1
+    o_creat = 0o100
+    o_trunc = 0o1000
     # mov rsi, 1
-    result.extend([0x48, 0xBE] + int_64bit(1))
+    result.extend([0x48, 0xBE] + int_64bit(o_wronly | o_creat | o_trunc))
 
     # 0 (no flags for umode_t)
     # mov rdx, 0
