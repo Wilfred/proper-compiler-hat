@@ -3,6 +3,13 @@
 (print (if (not true) "blah" "hello, again\n"))
 (exit (+ 1 (+ 2 3)))
 
+; REFERENCES
+;
+; I find the following sites useful for documentation.
+;
+; syscalls: https://filippo.io/linux-syscall-table/
+; instructions: https://www.felixcloutier.com/x86/
+
 ; DEBUGGING NOTES
 ;
 ; objdump can't show us the instructions of our executable section
