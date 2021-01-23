@@ -977,8 +977,8 @@ def string_lit_offset(value, context):
     offset = context['data_offset']
     context['string_literals'][value] = offset
     # The new offset will be the size of this string, including its
-    # length data.
-    context['data_offset'] += len(value) + 8
+    # length data, plus a null byte to make C interop easier.
+    context['data_offset'] += len(value) + 8 + 1
 
     return offset
 
@@ -1005,6 +1005,7 @@ def main(filename):
             # then their data.
             f.write(bytes(int_64bit(len(string_literal))))
             f.write(string_literal)
+            f.write(b"\0")
 
     os.chmod('hello', 0o744)
 
