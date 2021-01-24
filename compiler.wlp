@@ -1,4 +1,4 @@
-(let (f (open! "hello2"))
+(let (f (open! "a.out"))
   ; Write ELF magic number.
   (write! f 0x7F)
   (write! f 0x45)
