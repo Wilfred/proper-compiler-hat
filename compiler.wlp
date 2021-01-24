@@ -1,7 +1,9 @@
-; foo
-(print "hello, world\n")
-(print (if (not true) "blah" "hello, again\n"))
-(exit (+ 1 (+ 2 3)))
+(let (f (open! "hello2"))
+  ; Write ELF magic bytes.
+  (write! f 127)
+  (write! f 69)
+  (write! f 76)
+  (write! f 70))
 
 ; REFERENCES
 ;
@@ -26,3 +28,4 @@
 ;
 ; The gdb command 'layout reg' is helpful for seeing register
 ; values. You can also do 'layout asm' to see the assembly alongside.
+
