@@ -63,7 +63,8 @@
 
 \\{wlp-mode-map}"
   (setq-local font-lock-defaults '(wlp-font-lock-keywords))
-  (setq-local comment-start "; "))
+  (setq-local comment-start "; ")
+  (setq-local indent-line-function #'lisp-indent-line))
 
 
 (provide 'wlp-mode)
