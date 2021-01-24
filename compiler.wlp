@@ -1,9 +1,34 @@
 (let (f (open! "hello2"))
-  ; Write ELF magic bytes.
-  (write! f 127)
-  (write! f 69)
-  (write! f 76)
-  (write! f 70))
+  ; Write ELF magic number.
+  (write! f 0x7F)
+  (write! f 0x45)
+  (write! f 0x4C)
+  (write! f 0x46)
+  (write! f 0x02)
+  (write! f 0x01)
+  (write! f 0x01)
+  (write! f 0x00)
+  ; ELF reserved.
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00)
+
+  ; e_type: Executable file
+  (write! f 0x02)
+  (write! f 0x00)
+  ; e_machine: AMD64
+  (write! f 0x3E)
+  (write! f 0x00)
+  ; e_version: 1
+  (write! f 0x01)
+  (write! f 0x00)
+  (write! f 0x00)
+  (write! f 0x00))
 
 ; REFERENCES
 ;
