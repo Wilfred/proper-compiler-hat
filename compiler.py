@@ -1110,8 +1110,6 @@ def main(filename):
 
     os.chmod('hello', 0o744)
 
-    print("Wrote hello ELF")
-
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
