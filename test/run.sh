@@ -10,10 +10,13 @@ RESET=$(tput sgr0)
 
 
 for f in test/*.wlp; do
+    exe=${f%.*} # strip .wlp
     echo -e "$BOLD$GREEN==>$WHITE ${f}$RESET"
     ./compiler.py "$f"
-    ./hello > "$f.out"
+    "./$exe" > "$f.out"
     exit=$?
+    rm "$exe"
     diff --color -u "$f.stdout" "$f.out"
+    rm "$f.out"
     echo "exit code: $exit"
 done

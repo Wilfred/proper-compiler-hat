@@ -1111,7 +1111,10 @@ def main(filename):
     main_fun = compile_main(ast, context)
     header = elf_header_instructions(main_fun, context)
 
-    with open('hello', 'wb') as f:
+    # Given `foo.wlp`, write output binary `foo`.
+    output_path = os.path.splitext(filename)[0]
+
+    with open(output_path, 'wb') as f:
         f.write(bytes(header))
         f.write(bytes(main_fun))
         # TODO: put string literals in a named section
@@ -1123,7 +1126,7 @@ def main(filename):
             f.write(string_literal)
             f.write(b"\0")
 
-    os.chmod('hello', 0o744)
+    os.chmod(output_path, 0o744)
 
 
 if __name__ == '__main__':
