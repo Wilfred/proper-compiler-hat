@@ -1,1 +1,2 @@
-(exit (open! "foo"))
+(defun main ()
+  (exit (open! "foo")))

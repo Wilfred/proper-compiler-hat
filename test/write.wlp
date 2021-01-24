@@ -1,4 +1,5 @@
-; Write 'a' to stdout
-(write! 1 97)
-; Write '\n' to stdout
-(write! 1 10)
+(defun main ()
+  ; Write 'a' to stdout
+  (write! 1 97)
+  ; Write '\n' to stdout
+  (write! 1 10))

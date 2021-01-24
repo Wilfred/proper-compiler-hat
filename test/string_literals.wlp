@@ -1,2 +1,3 @@
-; Test escape sequences.
-(print "a \" \\ b \n")
+(defun main ()
+  ; Test escape sequences.
+  (print "a \" \\ b \n"))

@@ -1042,23 +1042,36 @@ def compile_expr(subtree, context):
         assert False, "Expected function call, got {}".format(kind)
 
 
-def compile_main(ast, context):
+def compile_fun(ast, context):
+    ast_kind, ast_value = ast
+    assert ast_kind == LIST
+
+    defun = ast_value[0]
+    assert defun == (SYMBOL, 'defun'), "Expected a function definition, got: {!r}".format(defun)
+    name = ast_value[1]
+    # args = ast_value[2]
+    body = ast_value[3:]
+    
     # The raw bytes of the instructions for the main function.
-    main_fun_tmpl = []
+    fun_tmpl = []
 
     # Ensure rbp is set correctly.
     # mov rbp, rsp
-    main_fun_tmpl.extend([0x48, 0x89, 0xE5])
+    fun_tmpl.extend([0x48, 0x89, 0xE5])
 
-    for subtree in ast:
-        main_fun_tmpl.extend(compile_expr(subtree, context))
+    for subtree in body:
+        fun_tmpl.extend(compile_expr(subtree, context))
 
-    # Always end the main function with (exit 0) if the user hasn't
-    # exited. Otherwise, we continue executing into the data section and segfault.
-    main_fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
+    if name == (SYMBOL, 'main'):
+        # Always end the main function with (exit 0) if the user hasn't
+        # exited.
+        fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
+    else:
+        # TODO: Add return instruction.
+        pass
 
     result = []
-    for byte in main_fun_tmpl:
+    for byte in fun_tmpl:
         if isinstance(byte, int):
             result.append(byte)
         elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'string_lit':
@@ -1066,9 +1079,10 @@ def compile_main(ast, context):
 
             header_size = 120 # TODO: compute
             # String literals are immediately after code section.
-            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(main_fun_tmpl) + offset))
+            # TODO: this assumes there's only a single function.
+            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(fun_tmpl) + offset))
         else:
-            assert False, "Invalid template in main fun: {!r}".format(byte)
+            assert False, "Invalid template in fun {}: {!r}".format(name, byte)
 
     return result
 
@@ -1104,11 +1118,11 @@ def main(filename):
         src = f.read()
 
     tokens = list(lex(src))
-    ast = parse(tokens)
+    defs = parse(tokens)
+
 
     context = {'string_literals': {}, 'data_offset': 0, 'locals': {}}
-
-    main_fun = compile_main(ast, context)
+    main_fun = compile_fun(defs[0], context)
     header = elf_header_instructions(main_fun, context)
 
     # Given `foo.wlp`, write output binary `foo`.

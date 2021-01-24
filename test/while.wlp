@@ -1,5 +1,6 @@
-(let (x 0)
-  (while (< x 2)
-    (do
-      (print "hello world\n")
-      (set! x (+ x 1)))))
+(defun main ()
+  (let (x 0)
+    (while (< x 2)
+      (do
+        (print "hello world\n")
+        (set! x (+ x 1))))))
