@@ -873,18 +873,20 @@ def compile_open(args, context):
     o_wronly = 0o1
     o_creat = 0o100
     o_trunc = 0o1000
-    # mov rsi, 1
+    # mov rsi, flag
     result.extend([0x48, 0xBE] + int_64bit(o_wronly | o_creat | o_trunc))
 
-    # 0 (no flags for umode_t)
-    # mov rdx, 0
-    result.extend([0x48, 0xBA] + int_64bit(0))
+    mode = 0o644
+    # mov rdx, mode
+    result.extend([0x48, 0xBA] + int_64bit(mode))
     
     # mov eax, 2 (2 = sys_open)
     result.extend([0xb8, 0x02, 0x00, 0x00, 0x00])
 
     # syscall
     result.extend([0x0f, 0x05])
+
+    # TODO: error if we get a negative file descriptor.
 
     # We get a file descriptor, tag as an integer.
     result.extend(compile_to_tagged_int())
