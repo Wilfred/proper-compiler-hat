@@ -1,0 +1,4 @@
+; Write 'a' to stdout
+(write! 1 97)
+; Write '\n' to stdout
+(write! 1 10)

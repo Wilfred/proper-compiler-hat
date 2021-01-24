@@ -184,3 +184,12 @@ second. Requires integer arguments.
 ```
 
 Opens the path specified for writing. Returns the file descriptor.
+
+## `write!` function
+
+```
+; Writes 'a' to stdout.
+(write 1 97)
+```
+
+Writes a single byte to the file descriptor specified.

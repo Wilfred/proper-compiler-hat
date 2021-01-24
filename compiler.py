@@ -894,6 +894,54 @@ def compile_open(args, context):
     return result
 
 
+def compile_write(args, context):
+    assert len(args) == 2, "write! takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    
+    # Previous expression is in rax, save it in rcx.
+    # mov rcx, rax
+    result.extend([0x48, 0x89, 0xC1])
+
+    # TODO: we should check that the value is <128.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+
+    # We need the byte in memory, so we can pass a pointer.
+    # push rax
+    result.extend([0x50])
+
+    # rsp now points to the byte we want to write.
+    # mov rsi, rsp
+    result.extend([0x48, 0x89, 0xE6])
+
+    # We saved the file descriptor we wanted in rcx, move to 1st
+    # argument register.
+    # mov rdi, rcx
+    result.extend([0x48, 0x89, 0xCF])
+
+    # We're only writing one byte.
+    # mov rdx, 1
+    result.extend([0x48, 0xBA] + int_64bit(1))
+
+    # 1 = sys_write
+    # mov rax, 1
+    result.extend([0x48, 0xB8] + int_64bit(1))
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # Clean up stack.
+    # This also means we're arbitrarily returning the second argument,
+    # because we dont have a null type yet.
+    # pop rax
+    result.extend([0x58])
+
+    return result
+
+
 def compile_add(args, context):
     assert len(args) == 2, "+ takes exactly two arguments"
 
@@ -963,6 +1011,8 @@ def compile_expr(subtree, context):
             return compile_equals(args, context)
         elif fun_name == 'open!':
             return compile_open(args, context)
+        elif fun_name == 'write!':
+            return compile_write(args, context)
         else:
             assert False, "Unknown function: {}".format(fun_name)
     elif kind == INTEGER:
