@@ -12,6 +12,8 @@ RESET=$(tput sgr0)
 for f in test/*.wlp; do
     echo -e "$BOLD$GREEN==>$WHITE ${f}$RESET"
     ./compiler.py "$f"
-    ./hello
-    echo "exit code: $?"
+    ./hello > "$f.stdout"
+    exit=$?
+    diff --color -u "$f.stdout" "$f.out"
+    echo "exit code: $exit"
 done
