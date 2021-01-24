@@ -89,8 +89,7 @@ def lex(src):
 
 
 def is_int_literal(token):
-    return all(c in string.digits
-               for c in token)
+    return token[0] in string.digits
 
 
 def parse_from(tokens, i):
@@ -125,10 +124,26 @@ def parse_from(tokens, i):
         # string literal
         return (i + 1, (STRING, unescape(token)))
     elif is_int_literal(token):
-        return (i + 1, (INTEGER, int(token)))
+        return (i + 1, (INTEGER, parse_int(token)))
     else:
         # symbol
         return (i + 1, (SYMBOL, token))
+
+def parse_int(token):
+    """Convert a token of a integer literal to its integer value.
+
+    >>> parse_int("100")
+    100
+    >>> parse_int("0xA")
+    10
+
+    """
+    if token.startswith('0x'):
+        return int(token, base=16)
+    elif token.startswith('0o'):
+        return int(token, base=8)
+    else:
+        return int(token)
 
 
 def parse(tokens):

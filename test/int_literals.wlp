@@ -1,0 +1,3 @@
+(print (if (= 10 0xA) "good" "bad"))
+
+(print (if (= 10 0o12) "good" "bad"))
