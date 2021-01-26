@@ -365,41 +365,6 @@ def compile_string_length(args, context):
     return result
 
 
-def compile_bool_to_string(args, context):
-    assert len(args) == 1, "bool-to-string takes exactly one argument"
-
-    result = []
-    result.extend(compile_expr(args[0], context))
-    result.extend(compile_bool_check(context))
-
-    result.extend(zero_rax_tag_bits())
-
-    true_string_addr = string_lit_offset(b"true", context)
-    false_string_addr = string_lit_offset(b"false", context)
-
-    true_block = [
-        # mov rax, ADDR_of_TRUE_STRING
-        0x48, 0xb8, ['string_lit', true_string_addr],
-    ]
-    false_block = [
-        # mov rax, ADDR_of_FALSE_STRING
-        0x48, 0xb8, ['string_lit', false_string_addr],
-    ]
-    # jmp END_OF_TRUE_BLOCk
-    false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
-
-    # cmp rax, 1
-    result.extend([0x48, 0x3d] + int_32bit(1))
-    # je TRUE_BLOCK (straight after FALSE_BLOCK)
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(false_block)))
-
-    result.extend(false_block)
-    result.extend(true_block)
-
-    result.extend(compile_ptr_to_tagged_string())
-    return result
-
-
 def compile_not(args, context):
     assert len(args) == 1, "not takes exactly one argument"
 
@@ -1002,8 +967,6 @@ def compile_expr(subtree, context):
             return compile_exit(args, context)
         elif fun_name == '+':
             return compile_add(args, context)
-        elif fun_name == 'bool-to-string':
-            return compile_bool_to_string(args, context)
         elif fun_name == 'not':
             return compile_not(args, context)
         elif fun_name == 'if':

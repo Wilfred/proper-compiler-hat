@@ -59,14 +59,6 @@ false
 
 `+` returns the sum of two integers.
 
-## `bool-to-string` function
-
-```
-(bool-to-string true) ; "true"
-```
-
-Converts a boolean value to a string representation.
-
 ## `not` function
 
 ```
