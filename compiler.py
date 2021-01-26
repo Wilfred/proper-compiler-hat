@@ -1083,9 +1083,22 @@ def main(filename):
     tokens = list(lex(src))
     defs = parse(tokens)
 
+    defs_by_name = {}
+    for def_ in defs:
+        def_kind, def_value = def_
+        assert def_kind == LIST, "Expected a list at the top level, got {}".format(def_kind)
+
+        assert def_value and def_value[0] == (SYMBOL, 'defun'), "Expected a function definition, got: {!r}".format(def_value[0])
+        assert len(def_value) > 3, "defun requires a name, parameters, and a body"
+
+        name_kind, name_value = def_value[1]
+        assert name_kind == SYMBOL, "defun requires a name"
+        defs_by_name[name_value] = def_
+
+    assert 'main' in defs_by_name, "A program must have a main function"
 
     context = {'string_literals': {}, 'data_offset': 0, 'locals': {}}
-    main_fun = compile_fun(defs[0], context)
+    main_fun = compile_fun(defs_by_name['main'], context)
     header = elf_header_instructions(main_fun, context)
 
     # Given `foo.wlp`, write output binary `foo`.
