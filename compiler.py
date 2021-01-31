@@ -1033,9 +1033,9 @@ def compile_fun(ast, context):
         # Always end the main function with (exit 0) if the user hasn't
         # exited.
         fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
-    else:
-        # TODO: Add return instruction.
-        pass
+
+    # ret
+    fun_tmpl.extend([0xC3])
 
     context['instr_bytes'] += num_bytes(fun_tmpl)
     return fun_tmpl
