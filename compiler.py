@@ -257,8 +257,10 @@ def num_bytes(byte_tmpl):
             total += 1
         elif isinstance(b, list) and b:
             tmpl_key = b[0]
-            if tmpl_key in ('string_lit'):
+            if tmpl_key == 'string_lit':
                 total += 8
+            elif tmpl_key == 'fun_offset':
+                total += 4
             else:
                 assert False, "tmpl key: {!r}".format(tmpl_key)
         elif b in ('prog_entry', 'prog_length'):
@@ -1006,7 +1008,7 @@ def compile_expr(subtree, context):
         elif fun_name == 'write!':
             return compile_write(args, context)
         else:
-            assert False, "Unknown function: {}".format(fun_name)
+            return compile_call(fun_name, context)
     elif kind == INTEGER:
         return compile_int_literal(value)
     elif kind == STRING:
@@ -1017,6 +1019,19 @@ def compile_expr(subtree, context):
         return compile_local_variable(value, context)
     else:
         assert False, "Expected function call, got {}".format(kind)
+
+
+def compile_call(fun_name, context):
+    assert fun_name in context['global_funs'], "Unknown function: {}".format(fun_name)
+
+    result = []
+    # CALL opcode
+    result.extend([0xE8])
+
+    # We may not know the offset of the function yet.
+    result.extend([['fun_offset', fun_name]])
+
+    return result
 
 
 def compile_fun(ast, context):
@@ -1120,6 +1135,17 @@ def main(filename):
             header_size = 120 # TODO: compute
             # String literals are immediately after code section.
             instrs.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(instrs_tmpl) + offset))
+        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'fun_offset':
+            fun_name = byte[1]
+            absolute_offset = context['fun_offsets'][fun_name]
+            # A relative is calculated relative to the current value
+            # of rip, which is after the current CALL
+            # instruction. We've only written the opcode so far, so
+            # rip will be 4 additional bytes for the 32-bit immediate
+            # offset.
+            rip_value = len(instrs) + 4
+            relative_offset = absolute_offset - rip_value
+            instrs.extend(int_32bit(relative_offset))
         else:
             assert False, "Invalid template in instrs_tmpl: {!r}".format(byte)
 
