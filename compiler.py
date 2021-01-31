@@ -1037,22 +1037,8 @@ def compile_fun(ast, context):
         # TODO: Add return instruction.
         pass
 
-    result = []
-    for byte in fun_tmpl:
-        if isinstance(byte, int):
-            result.append(byte)
-        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'string_lit':
-            offset = byte[1]
-
-            header_size = 120 # TODO: compute
-            # String literals are immediately after code section.
-            # TODO: this assumes there's only a single function.
-            result.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(fun_tmpl) + offset))
-        else:
-            assert False, "Invalid template in fun {}: {!r}".format(name, byte)
-
-    context['instr_bytes'] += len(result)
-    return result
+    context['instr_bytes'] += num_bytes(fun_tmpl)
+    return fun_tmpl
 
 
 def num_bytes_string_lit(value):
@@ -1103,16 +1089,34 @@ def main(filename):
     assert 'main' in defs_by_name, "A program must have a main function"
 
     context = {'string_literals': {}, 'data_offset': 0, 'locals': {},
-               'fun_offsets': {}, 'instr_bytes': 0}
-    main_fun = compile_fun(defs_by_name['main'], context)
-    header = elf_header_instructions(main_fun, context)
+               'fun_offsets': {}, 'global_funs': defs_by_name.keys(),
+               'instr_bytes': 0}
+
+    instrs_tmpl = []
+    for ast in defs_by_name.values():
+        instrs_tmpl.extend(compile_fun(ast, context))
+
+    instrs = []
+    for byte in instrs_tmpl:
+        if isinstance(byte, int):
+            instrs.append(byte)
+        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'string_lit':
+            offset = byte[1]
+
+            header_size = 120 # TODO: compute
+            # String literals are immediately after code section.
+            instrs.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(instrs_tmpl) + offset))
+        else:
+            assert False, "Invalid template in instrs_tmpl: {!r}".format(byte)
+
+    header = elf_header_instructions(instrs, context)
 
     # Given `foo.wlp`, write output binary `foo`.
     output_path = os.path.splitext(filename)[0]
 
     with open(output_path, 'wb') as f:
         f.write(bytes(header))
-        f.write(bytes(main_fun))
+        f.write(bytes(instrs))
         # TODO: put string literals in a named section
         # Assumes dict is in insertion order (Python 3.6+)
         for string_literal in context['string_literals'].keys():
