@@ -1,7 +1,6 @@
-(defun main ()
-  (print "hello ")
-  (say-world))
-
 (defun say-world ()
   (print "world\n"))
 
+(defun main ()
+  (print "hello ")
+  (say-world))

@@ -1034,6 +1034,25 @@ def compile_call(fun_name, context):
     return result
 
 
+def compile_start(context):
+    """Call the main function, then exit.
+
+    """
+    result = []
+
+    # Ensure rbp is set correctly, so we can return from main.
+    # mov rbp, rsp
+    result.extend([0x48, 0x89, 0xE5])
+
+    result.extend(compile_call('main', context))
+
+    # Always end execution with (exit 0) if the user hasn't exited.
+    result.extend(compile_exit([(INTEGER, 0)], context))
+
+    context['instr_bytes'] += num_bytes(result)
+    return result
+
+
 def compile_fun(ast, context):
     ast_kind, ast_value = ast
     assert ast_kind == LIST
@@ -1124,6 +1143,8 @@ def main(filename):
                'instr_bytes': 0}
 
     instrs_tmpl = []
+    instrs_tmpl.extend(compile_start(context))
+    
     for ast in defs_by_name.values():
         instrs_tmpl.extend(compile_fun(ast, context))
 
