@@ -251,8 +251,22 @@ def num_bytes(byte_tmpl):
     9
 
     """
-    return sum(1 if isinstance(b, int) else 8
-               for b in byte_tmpl)
+    total = 0
+    for b in byte_tmpl:
+        if isinstance(b, int):
+            total += 1
+        elif isinstance(b, list) and b:
+            tmpl_key = b[0]
+            if tmpl_key in ('string_lit'):
+                total += 8
+            else:
+                assert False, "tmpl key: {!r}".format(tmpl_key)
+        elif b in ('prog_entry', 'prog_length'):
+            total += 8
+        else:
+            assert False, "tmpl: {!r}".format(b)
+
+    return total
 
 
 def elf_header_instructions(main_instructions, string_literals):
