@@ -1011,7 +1011,11 @@ def compile_fun(ast, context):
 
     defun = ast_value[0]
     assert defun == (SYMBOL, 'defun'), "Expected a function definition, got: {!r}".format(defun)
-    name = ast_value[1]
+    name_kind, name = ast_value[1]
+    assert name_kind == SYMBOL, "Function name must be a symbol."
+
+    context['fun_offsets'][name] = context['instr_bytes']
+    
     # args = ast_value[2]
     body = ast_value[3:]
     
@@ -1025,7 +1029,7 @@ def compile_fun(ast, context):
     for subtree in body:
         fun_tmpl.extend(compile_expr(subtree, context))
 
-    if name == (SYMBOL, 'main'):
+    if name == 'main':
         # Always end the main function with (exit 0) if the user hasn't
         # exited.
         fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
@@ -1047,6 +1051,7 @@ def compile_fun(ast, context):
         else:
             assert False, "Invalid template in fun {}: {!r}".format(name, byte)
 
+    context['instr_bytes'] += len(result)
     return result
 
 
@@ -1097,7 +1102,8 @@ def main(filename):
 
     assert 'main' in defs_by_name, "A program must have a main function"
 
-    context = {'string_literals': {}, 'data_offset': 0, 'locals': {}}
+    context = {'string_literals': {}, 'data_offset': 0, 'locals': {},
+               'fun_offsets': {}, 'instr_bytes': 0}
     main_fun = compile_fun(defs_by_name['main'], context)
     header = elf_header_instructions(main_fun, context)
 
