@@ -1051,18 +1051,20 @@ def compile_fun(ast, context):
     # The raw bytes of the instructions for the main function.
     fun_tmpl = []
 
-    # Ensure rbp is set correctly.
+    # Function prologue, setting up the stack.
+    # push rbp
+    fun_tmpl.extend([0x55])
     # mov rbp, rsp
     fun_tmpl.extend([0x48, 0x89, 0xE5])
 
     for subtree in body:
         fun_tmpl.extend(compile_expr(subtree, context))
 
-    if name == 'main':
-        # Always end the main function with (exit 0) if the user hasn't
-        # exited.
-        fun_tmpl.extend(compile_exit([(INTEGER, 0)], context))
-
+    # Function epilogue.
+    # mov rsp, rbp
+    fun_tmpl.extend([0x48, 0x89, 0xEC])
+    # pop rbp
+    fun_tmpl.extend([0x5D])
     # ret
     fun_tmpl.extend([0xC3])
 
