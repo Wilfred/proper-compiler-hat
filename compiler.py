@@ -1054,6 +1054,9 @@ def compile_start(context):
 
 
 def compile_fun(ast, context):
+    # Set up context items that are per-function.
+    context['locals'] = {}
+    
     ast_kind, ast_value = ast
     assert ast_kind == LIST
 
@@ -1088,6 +1091,8 @@ def compile_fun(ast, context):
     fun_tmpl.extend([0xC3])
 
     context['instr_bytes'] += num_bytes(fun_tmpl)
+    context.pop('locals')
+
     return fun_tmpl
 
 
@@ -1138,7 +1143,7 @@ def main(filename):
 
     assert 'main' in defs_by_name, "A program must have a main function"
 
-    context = {'string_literals': {}, 'data_offset': 0, 'locals': {},
+    context = {'string_literals': {}, 'data_offset': 0,
                'fun_offsets': {}, 'global_funs': defs_by_name.keys(),
                'instr_bytes': 0}
 
