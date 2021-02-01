@@ -185,3 +185,13 @@ Opens the path specified for writing. Returns the file descriptor.
 ```
 
 Writes a single byte to the file descriptor specified.
+
+## `defun` keyword
+
+`defun` defines a global function.
+
+```
+(defun foo ()
+  (print "hello\n")
+  (print "world\n"))
+```
