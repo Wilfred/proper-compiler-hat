@@ -395,7 +395,7 @@ def compile_not(args, context):
     return result
 
 def local_var_offset(var, context):
-    """Add `var` to `context`, and return its offset.
+    """Add `var` to `context`, and return its offset to rbp.
 
     """
     kind, var_name = var
@@ -405,9 +405,10 @@ def local_var_offset(var, context):
     if var_name in context['locals']:
         return context['locals'][var_name]
 
-    # Remember this new local variable, and compute its offset.
-    # Each local variable is one word (64 bits).
-    offset = len(context['locals']) * 8
+    # Remember this new local variable, and compute its offset. Each
+    # local variable is one word (64 bits), and is at a lower memory
+    # address than rbp.
+    offset = -1 * (len(context['locals']) + 1) * 8
     context['locals'][var_name] = offset
 
     return offset
