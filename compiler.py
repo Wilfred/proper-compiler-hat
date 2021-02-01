@@ -417,11 +417,19 @@ def local_var_offset(var, context):
 def compile_local_variable(var_name, context):
     assert isinstance(var_name, str)
 
-    assert var_name in context['locals'], "Variable `{}` is not bound".format(var_name)
+    offset = None
+    if var_name in context['arg_offsets']:
+        offset = context['arg_offsets'][var_name]
+    # Locals variables can shadow function parameters.
+    if var_name in context['locals']:
+        offset = context['locals'][var_name]
+
+    if offset is None:
+        assert False, "Variable `{}` is not bound".format(var_name)
 
     result = []
     # mov rax, [rbp + offset]
-    result.extend([0x48, 0x8B, 0x85] + int_32bit(context['locals'][var_name]))
+    result.extend([0x48, 0x8B, 0x85] + int_32bit(offset))
     return result
 
 
@@ -1009,7 +1017,7 @@ def compile_expr(subtree, context):
         elif fun_name == 'write!':
             return compile_write(args, context)
         else:
-            return compile_call(fun_name, context)
+            return compile_call(fun_name, args, context)
     elif kind == INTEGER:
         return compile_int_literal(value)
     elif kind == STRING:
@@ -1022,15 +1030,31 @@ def compile_expr(subtree, context):
         assert False, "Expected function call, got {}".format(kind)
 
 
-def compile_call(fun_name, context):
+def compile_call(fun_name, args, context):
     assert fun_name in context['global_funs'], "Unknown function: {}".format(fun_name)
 
+    # TODO: emit a warning when calling a function with the wrong
+    # number of arguments.
+
     result = []
+
+    # Push arguments right-to-left, following the System V AMD64 ABI.
+    # TODO: Pass the first args in RDI, RSI, RDX, RCX, R8 and R9.
+
+    for arg in reversed(args):
+        result.extend(compile_expr(arg, context))
+
+        # push rax
+        result.extend([0x50])
+    
     # CALL opcode
     result.extend([0xE8])
 
     # We may not know the offset of the function yet.
     result.extend([['fun_offset', fun_name]])
+
+    # add rsp, 8 * len(args)
+    result.extend([0x48, 0x81, 0xC4] + int_32bit(8 * len(args)))
 
     return result
 
@@ -1045,7 +1069,7 @@ def compile_start(context):
     # mov rbp, rsp
     result.extend([0x48, 0x89, 0xE5])
 
-    result.extend(compile_call('main', context))
+    result.extend(compile_call('main', [], context))
 
     # Always end execution with (exit 0) if the user hasn't exited.
     result.extend(compile_exit([(INTEGER, 0)], context))
@@ -1068,7 +1092,25 @@ def compile_fun(ast, context):
 
     context['fun_offsets'][name] = context['instr_bytes']
     
-    # args = ast_value[2]
+    args_kind, args = ast_value[2]
+    assert args_kind == LIST, "Function arguments must be a list"
+    
+    arg_offsets = {}
+    for i, (arg_kind, arg) in enumerate(args):
+        assert arg_kind == SYMBOL, "Function arguments must be symbols"
+        assert arg not in arg_offsets, "Duplicate argument: {}".format(arg)
+
+        # Args are above the saved return address, so the stack looks
+        # like this.
+        #
+        # RBP + 24: arg_1
+        # RBP + 16: arg_0
+        # RBP + 8:  return address
+        # RBP + 0:  saved RBP
+        arg_offsets[arg] = 16 + i * 8
+
+    context['arg_offsets'] = arg_offsets
+    
     body = ast_value[3:]
     
     # The raw bytes of the instructions for the main function.
@@ -1093,6 +1135,7 @@ def compile_fun(ast, context):
 
     context['instr_bytes'] += num_bytes(fun_tmpl)
     context.pop('locals')
+    context.pop('arg_offsets')
 
     return fun_tmpl
 
