@@ -1,0 +1,6 @@
+(defun print-args (x y)
+  (print y)
+  (print x))
+
+(defun main ()
+  (print-args "world\n" "hello "))

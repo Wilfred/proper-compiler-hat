@@ -1,0 +1,7 @@
+(defun print-arg (x)
+  (print x)
+  (let (x "world\n")
+    (print x)))
+
+(defun main ()
+  (print-arg "hello\n"))
