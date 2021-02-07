@@ -197,6 +197,15 @@ Opens the path specified for writing. Returns the file descriptor.
 
 Writes a single byte to the file descriptor specified.
 
+## `error` function
+
+```
+(error "something went wrong\n")
+```
+
+Writes the string to stderr, then terminates the program with exit
+code 1.
+
 ## `defun` keyword
 
 `defun` defines a global function.

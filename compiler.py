@@ -381,6 +381,45 @@ def compile_string_length(args, context):
     return result
 
 
+def compile_error(args, context):
+    assert len(args) == 1, "error takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+
+    result.extend(compile_string_check(context))
+    result.extend(compile_tagged_string_to_ptr())
+
+    # The first 8 bytes of a string store the length, so copy it to rdi.
+    # mov rdx, [rax]
+    result.extend([0x48, 0x8B, 0x10])
+
+    # Get the pointer to the string data in rsi.
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+    # mov rsi, rax
+    result.extend([0x48, 0x89, 0xC6])
+
+    # mov eax, 1 (1 = sys_write)
+    result.extend([0xb8] + int_32bit(1))
+        
+    # mov edi, 2 (2 = stderr)
+    result.extend([0xbf] + int_32bit(2))
+    
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # mov rdi, 1 (exit code)
+    result.extend([0x48, 0xbf] + int_64bit(1))
+    result.extend([
+        # mov eax, 60 (60 = sys_exit)
+        0xb8, 0x3c, 0x00, 0x00, 0x00,
+        # syscall
+        0x0f, 0x05])
+
+    return result
+
+
 def compile_not(args, context):
     assert len(args) == 1, "not takes exactly one argument"
 
@@ -1057,6 +1096,8 @@ def compile_expr(subtree, context):
             return compile_open(args, context)
         elif fun_name == 'write!':
             return compile_write(args, context)
+        elif fun_name == 'error':
+            return compile_error(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:

@@ -1,0 +1,4 @@
+(defun main ()
+  (error "oh no!\n")
+  ; Should have terminated before this exit.
+  (exit 2))
