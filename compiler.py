@@ -976,6 +976,45 @@ def compile_add(args, context):
     return result
 
 
+def compile_intdiv(args, context):
+    # TODO: handle division by zero.
+    assert len(args) == 2, "intdiv takes exactly two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in RAX.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+
+    # put the second argument in RDI.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # pop rax
+    result.extend([0x58])
+
+    # DIV uses RDX:RAX as its source, so ensure RDX is zero.
+    # mov rdx, 0
+    result.extend([0x48, 0xBA] + int_64bit(0))
+
+    # div rdi
+    result.extend([0x48, 0xF7, 0xF7])
+    # The quotient is in rax, so tag it and we're done.
+    result.extend(compile_to_tagged_int())
+    
+    return result
+
+
 def compile_expr(subtree, context):
     kind, value = subtree
     if kind == LIST:
@@ -992,6 +1031,8 @@ def compile_expr(subtree, context):
             return compile_exit(args, context)
         elif fun_name == '+':
             return compile_add(args, context)
+        elif fun_name == 'intdiv':
+            return compile_intdiv(args, context)
         elif fun_name == 'not':
             return compile_not(args, context)
         elif fun_name == 'if':

@@ -169,6 +169,17 @@ second. Requires integer arguments.
 Returns true if the first argument is strictly greater than the
 second. Requires integer arguments.
 
+## `intdiv` function
+
+```
+(intdiv 6 2) ; 3
+(intdiv 7 2) ; 3
+(intdiv 8 2) ; 4
+```
+
+Divides the first argument by the second. Crashes the program if the
+second argument is zero.
+
 ## `open!` function
 
 ```
