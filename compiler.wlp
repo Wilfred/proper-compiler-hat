@@ -26,23 +26,50 @@
     (print-digit! 1 ones))
   (print "\n"))
 
-(defun write-int32! (f n)
-  (if (> n 255)
-      (error "TODO: write-int32! with values bigger than one byte")
+(defun power (x n)
+  (if (< n 0)
+      (error "power: exponent may not be negative")
     0)
-  (write! f n)
-  (write! f 0)
-  (write! f 0)
-  (write! f 0))
+  (if (= n 0)
+      1
+    (* x (power x (- n 1)))))
+
+(defun shift-left (x n)
+  (* x (power 2 n)))
+
+(defun shift-right (x n)
+  (intdiv x (power 2 n)))
+
+(defun zero-high-bits (x n)
+  (shift-right (shift-left x n) n))
+
+(defun zero-low-bits (x n)
+  (shift-left (shift-right x n) n))
+
+; Return a value 0-255 that represents the `n`th byte in `x`.
+; `n` is zero-indexed and least significant (rightmost) byte first.
+(defun extract-byte (x n)
+  ; TODO: allow reassignment of parameters.
+  (let (y x)
+    ; Integers in Wilfred Lisp are 61 bits (3 tag bits).
+    (set! y (zero-high-bits y (- 61 (* (+ n 1) 8))))
+    (set! y (zero-low-bits y (* n 8)))
+    (shift-right y (* 8 n))))
+
+(defun write-int32! (f n)
+  (if (< n 0)
+      (error "write-int32!: value must not be negative")
+    0)
+  (write! f (extract-byte n 0))
+  (write! f (extract-byte n 1))
+  (write! f (extract-byte n 2))
+  (write! f (extract-byte n 3)))
 
 (defun write-int64! (f n)
-  (if (> n 255)
-      (error "TODO: write-int64! with values bigger than one byte")
+  (if (> n (power 2 32))
+      (error "TODO: write-int64!: support values bigger than 32-bits")
     0)
-  (write! f n)
-  (write! f 0)
-  (write! f 0)
-  (write! f 0)
+  (write-int32! f n)
   (write! f 0)
   (write! f 0)
   (write! f 0)
