@@ -1,0 +1,7 @@
+(defun power (x n)
+  (if (= n 0)
+      1
+    (* x (power x (- n 1)))))
+
+(defun main ()
+  (exit (power 2 5))) ; 32
