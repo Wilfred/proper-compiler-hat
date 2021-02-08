@@ -102,7 +102,12 @@
   (write! f 0x3E)
   (write! f 0x00)
   ; e_version: 1
-  (write-int32! f 1))
+  (write-int32! f 1)
+
+  ; e_entry (the program entry address, which is load offset + header size)
+  (let (entry-point 0x400000
+        elf-header-size 120)
+    (write-int64! f (+ entry-point elf-header-size))))
 
 ; REFERENCES
 ;
