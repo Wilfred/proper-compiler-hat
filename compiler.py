@@ -1015,6 +1015,38 @@ def compile_add(args, context):
     return result
 
 
+def compile_subtract(args, context):
+    assert len(args) == 2, "- takes exactly two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # pop rax
+    result.extend([0x58])
+
+    # sub rax, rdi
+    result.extend([0x48, 0x29, 0xF8])
+    result.extend(compile_to_tagged_int())
+    
+    return result
+
+
 def compile_multiply(args, context):
     assert len(args) == 2, "* takes exactly two arguments"
 
@@ -1099,6 +1131,8 @@ def compile_expr(subtree, context):
             return compile_exit(args, context)
         elif fun_name == '+':
             return compile_add(args, context)
+        elif fun_name == '-':
+            return compile_subtract(args, context)
         elif fun_name == '*':
             return compile_multiply(args, context)
         elif fun_name == 'intdiv':

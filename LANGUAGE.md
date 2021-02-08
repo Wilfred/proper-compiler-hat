@@ -59,6 +59,15 @@ false
 
 `+` returns the sum of two integers.
 
+## `-` function
+
+```
+(- 10 2) ; 8
+```
+
+`-` subtracts the second argument from the first argument. Both
+arguments must be integers.
+
 ## `*` function
 
 ```
