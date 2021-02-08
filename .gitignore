@@ -5,3 +5,7 @@ __pycache__
 *.out
 
 .gdb_history
+
+# Common test binaries during development.
+foo
+compiler
