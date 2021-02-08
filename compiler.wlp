@@ -2,6 +2,30 @@
   (let (f (open! "a.out"))
     (write-elf-header! f)))
 
+; Print `n` (an integer between 0 and 9) inclusive as an ASCII character.
+(defun print-digit! (f n)
+  (write! f (+ n 48)))
+
+; Write the string representation of integer `n` to stdout.
+(defun print-int! (n)
+  (if (> n 999)
+      (error "TODO: print-int!: larger numbers")
+    0)
+  ; Deliberately crude implementation to minimise reliance on other
+  ; functions or parts of compilation. This is a last-resort debugging
+  ; tool.
+  (let (hundreds (intdiv n 100)
+        tens (intdiv (- n (* 100 hundreds)) 10)
+        ones (- n (+ (* 100 hundreds) (* 10 tens))))
+    (if (> n 99)
+        (print-digit! 1 hundreds)
+     0)
+    (if (> n 9)
+        (print-digit! 1 tens)
+      0)
+    (print-digit! 1 ones))
+  (print "\n"))
+
 (defun write-int32! (f n)
   (if (> n 255)
       (error "TODO: write-int32! with values bigger than one byte")
