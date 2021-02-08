@@ -30,7 +30,12 @@
      (0 'font-lock-constant-face))
 
     (,(regexp-opt '("defun" "let" "if" "set!" "while" "do") 'symbols)
-     (0 'font-lock-keyword-face))))
+     (0 'font-lock-keyword-face))
+
+    (,(rx symbol-start "defun" symbol-end
+          (1+ space)
+          (group (1+ (or word (syntax symbol)))))
+     (1 'font-lock-function-name-face))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist (cons "\\.wlp\\'" 'wlp-mode))
