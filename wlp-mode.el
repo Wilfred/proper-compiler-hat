@@ -29,7 +29,7 @@
     (,(regexp-opt '("true" "false"))
      (0 'font-lock-constant-face))
 
-    (,(regexp-opt '("defun" "let" "if" "set!" "while" "do"))
+    (,(regexp-opt '("defun" "let" "if" "set!" "while" "do") 'symbols)
      (0 'font-lock-keyword-face))))
 
 ;;;###autoload
