@@ -2,6 +2,28 @@
   (let (f (open! "a.out"))
     (write-elf-header! f)))
 
+(defun write-int32! (f n)
+  (if (> n 255)
+      (error "TODO: write-int32! with values bigger than one byte")
+    0)
+  (write! f n)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0))
+
+(defun write-int64! (f n)
+  (if (> n 255)
+      (error "TODO: write-int64! with values bigger than one byte")
+    0)
+  (write! f n)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0)
+  (write! f 0))
+
 (defun write-elf-header! (f)
   ; Write ELF magic number.
   (write! f 0x7F)
@@ -29,10 +51,7 @@
   (write! f 0x3E)
   (write! f 0x00)
   ; e_version: 1
-  (write! f 0x01)
-  (write! f 0x00)
-  (write! f 0x00)
-  (write! f 0x00))
+  (write-int32! f 1))
 
 ; REFERENCES
 ;
