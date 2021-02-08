@@ -811,9 +811,9 @@ def compile_die(message, context):
     result = [
         # mov eax, 1 (1 = sys_write)
         0xb8, 0x01, 0x00, 0x00, 0x00,
-        # mov edi, 2 (2 = stderr)
-        0xbf, 0x01, 0x00, 0x00, 0x00,
     ]
+    # mov edi, 2 (2 = stderr)
+    result.extend([0xbf] + int_32bit(2))
     # mov rsi, STRING_LIT_ADDR
     result.extend([0x48, 0xbe, ['string_lit', addr]])
 
