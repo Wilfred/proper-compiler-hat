@@ -54,10 +54,18 @@ false
 ## `+` function
 
 ```
-(+ 1 2)
+(+ 1 2) ; 3
 ```
 
 `+` returns the sum of two integers.
+
+## `*` function
+
+```
+(* 2 3) ; 6
+```
+
+`*` returns the product of two integers.
 
 ## `not` function
 

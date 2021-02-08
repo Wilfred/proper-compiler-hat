@@ -67,7 +67,7 @@ def lex(src):
                     i += 1
                 
             i += 1
-        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=']:
+        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=', '*']:
             if token is None:
                 token = c
             else:
@@ -1015,6 +1015,35 @@ def compile_add(args, context):
     return result
 
 
+def compile_multiply(args, context):
+    assert len(args) == 2, "* takes exactly two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+    
+    # Push first argument, so we can reuse rax.
+    # push rax
+    result.extend([0x50])
+
+    # Evaluate second argument, result in rax.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    # untag
+    result.extend(compile_from_tagged_int())
+
+    # pop rdi
+    result.extend([0x5f])
+
+    # imul rax, rdi
+    result.extend([0x48, 0x0F, 0xAF, 0xC7])
+    result.extend(compile_to_tagged_int())
+    
+    return result
+
+
 def compile_intdiv(args, context):
     # TODO: handle division by zero.
     assert len(args) == 2, "intdiv takes exactly two arguments"
@@ -1070,6 +1099,8 @@ def compile_expr(subtree, context):
             return compile_exit(args, context)
         elif fun_name == '+':
             return compile_add(args, context)
+        elif fun_name == '*':
+            return compile_multiply(args, context)
         elif fun_name == 'intdiv':
             return compile_intdiv(args, context)
         elif fun_name == 'not':
