@@ -29,5 +29,13 @@ for f in test/*.wlp; do
     
     diff --color -u "$f.stdout" "$f.out"
     rm "$f.out"
-    echo "exit code: $exit"
+
+    expected_exit=0
+    if [ -f "$f.exitcode" ]; then
+        expected_exit=$(cat "$f.exitcode")
+    fi
+    
+    if [ $exit -ne $expected_exit ]; then
+        echo "Got exit code $exit (expected $expected_exit)"
+    fi
 done
