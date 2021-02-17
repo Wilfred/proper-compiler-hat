@@ -9,7 +9,7 @@
 ; Write the string representation of integer `n` to stdout.
 (defun print-int! (n)
   (if (> n 999)
-      (error "TODO: print-int!: larger numbers")
+      (error "TODO: print-int!: larger numbers\n")
     0)
   ; Deliberately crude implementation to minimise reliance on other
   ; functions or parts of compilation. This is a last-resort debugging
@@ -28,7 +28,7 @@
 
 (defun power (x n)
   (if (< n 0)
-      (error "power: exponent may not be negative")
+      (error "power: exponent may not be negative\n")
     0)
   (if (= n 0)
       1
@@ -58,7 +58,7 @@
 
 (defun write-int32! (f n)
   (if (< n 0)
-      (error "write-int32!: value must not be negative")
+      (error "write-int32!: value must not be negative\n")
     0)
   (write! f (extract-byte n 0))
   (write! f (extract-byte n 1))
@@ -67,7 +67,7 @@
 
 (defun write-int64! (f n)
   (if (> n (power 2 32))
-      (error "TODO: write-int64!: support values bigger than 32-bits")
+      (error "TODO: write-int64!: support values bigger than 32-bits\n")
     0)
   (write-int32! f n)
   (write! f 0)
