@@ -1177,11 +1177,23 @@ def compile_expr(subtree, context):
         assert False, "Expected function call, got {}".format(kind)
 
 
+def num_args(fun_name, context):
+    def_kind, def_value = context['global_funs'][fun_name]
+    assert def_kind == LIST, "Malformed function definition"
+    assert len(def_value) > 3, "defun requires a name, parameters, and a body"
+
+    params_kind, params_value = def_value[2]
+    assert params_kind == LIST, "Malformed function parameters"
+
+    return len(params_value)
+
+
 def compile_call(fun_name, args, context):
     assert fun_name in context['global_funs'], "Unknown function: {}".format(fun_name)
 
-    # TODO: emit a warning when calling a function with the wrong
-    # number of arguments.
+    expected_args = num_args(fun_name, context)
+    err_msg = "Expected {} arguments to {}, got {}".format(expected_args, fun_name, len(args))
+    assert expected_args == len(args), err_msg
 
     result = []
 
@@ -1335,7 +1347,7 @@ def main(filename):
     assert 'main' in defs_by_name, "A program must have a main function"
 
     context = {'string_literals': {}, 'data_offset': 0,
-               'fun_offsets': {}, 'global_funs': defs_by_name.keys(),
+               'fun_offsets': {}, 'global_funs': defs_by_name,
                'instr_bytes': 0}
 
     instrs_tmpl = []
