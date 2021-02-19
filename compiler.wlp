@@ -104,10 +104,54 @@
   ; e_version: 1
   (write-int32! f 1)
 
-  ; e_entry (the program entry address, which is load offset + header size)
   (let (entry-point 0x400000
         elf-header-size 120)
-    (write-int64! f (+ entry-point elf-header-size))))
+    ; e_entry (the program entry address, which is load offset + header size)
+    (write-int64! f (+ entry-point elf-header-size)))
+
+  ; e_phoff (program header offset)
+  (write-int64! f 0x40)
+  ; e_shoff (no section header)
+  (write-int64! f 0)
+
+  ; e_flags (no flags)
+  (write-int32! f 0)
+  ; e_ehsize (ELF header size, 0x40)
+  (write! f 0x40)
+  (write! f 0x00)
+  ; e_phentsize (program header size)
+  (write! f 0x38)
+  (write! f 0x00)
+  ; e_phnum
+  (write! f 0x01)
+  (write! f 0x00)
+  ; e_shentize
+  (write! f 0x00)
+  (write! f 0x00)
+  ; e_shnum
+  (write! f 0x00)
+  (write! f 0x00)
+  ; e_shstrndx
+  (write! f 0x00)
+  (write! f 0x00)
+
+  ; p_type (loadable segment)
+  (write-int32! f 0x01)
+  ; p_flags (read and execute)
+  (write-int32! f 0x04)
+  ; p_offset
+  (write-int64! f 0x0)
+  ; p_vaddr (start of current section)
+  (write-int64! f 0x400000)
+  ; p_paddr (start of current section)
+  (write-int64! f 0x400000)
+  ; p_filesz, the file size
+  (write-int64! f 0xDEADBEEF) ; TODO
+  ; p_memsz
+  (write-int64! f 0xDEADBEEF) ; TODO
+  ; p_align
+  (write-int64! f 0x200000))
+    
 
 ; REFERENCES
 ;
