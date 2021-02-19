@@ -939,7 +939,7 @@ def compile_open(args, context):
 
 
 def compile_write(args, context):
-    assert len(args) == 2, "write! takes exactly one argument"
+    assert len(args) == 2, "write! requires two arguments"
 
     result = []
     result.extend(compile_expr(args[0], context))
