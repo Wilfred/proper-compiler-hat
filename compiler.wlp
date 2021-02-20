@@ -140,7 +140,7 @@
   ; p_type (loadable segment)
   (write-int32! f 0x01)
   ; p_flags (read and execute)
-  (write-int32! f 0x04)
+  (write-int32! f 0x05)
   ; p_offset
   (write-int64! f 0x0)
   ; p_vaddr (start of current section)
