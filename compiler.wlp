@@ -1,6 +1,8 @@
 (defun main ()
-  (let (f (open! "a.out"))
-    (write-elf-header! f)))
+  (let (path "a.out"
+        f (open! path))
+    (write-elf-header! f)
+    (chmod! path 484)))
 
 ; Print `n` (an integer between 0 and 9) inclusive as an ASCII character.
 (defun print-digit! (f n)
