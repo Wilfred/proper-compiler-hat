@@ -1,0 +1,3 @@
+(defun main ()
+  ; 644 in octal.
+  (chmod! "chmod.wlp" 420))

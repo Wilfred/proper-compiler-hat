@@ -214,6 +214,15 @@ Opens the path specified for writing. Returns the file descriptor.
 
 Writes a single byte to the file descriptor specified.
 
+## `chmod!` function
+
+```
+; Makes a.out executable with permissions 0o744.
+(chmod! "a.out" 484)
+```
+
+Set permissions on the file at the path specified.
+
 ## `error` function
 
 ```

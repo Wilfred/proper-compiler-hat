@@ -986,6 +986,47 @@ def compile_write(args, context):
     return result
 
 
+def compile_chmod(args, context):
+    assert len(args) == 2, "chmod! requires two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_string_check(context))
+
+    result.extend(compile_tagged_string_to_ptr())
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
+    # push rax
+    result.extend([0x50])
+    
+    # First syscall argument in RDI.
+
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # First syscall argument in RDI.
+    # pop rdi
+    result.extend([0x5f])
+
+    # Second syscall argument in RSI.
+    # mov rsi, rax
+    result.extend([0x48, 0x89, 0xc6])
+
+    # chmod has syscall number 90.
+    # mov rax, 90
+    result.extend([0x48, 0xb8] + int_64bit(90))
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # Arbitrarily return zero since we don't have null yet.
+    result.extend(compile_int_literal(0))
+
+    return result
+
+
 def compile_add(args, context):
     assert len(args) == 2, "+ takes exactly two arguments"
 
@@ -1161,6 +1202,8 @@ def compile_expr(subtree, context):
             return compile_open(args, context)
         elif fun_name == 'write!':
             return compile_write(args, context)
+        elif fun_name == 'chmod!':
+            return compile_chmod(args, context)
         elif fun_name == 'error':
             return compile_error(args, context)
         else:
