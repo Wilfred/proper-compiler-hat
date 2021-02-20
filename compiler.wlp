@@ -2,7 +2,21 @@
   (let (path "a.out"
         f (open! path))
     (write-elf-header! f)
+    (compile-exit! f 42)
     (chmod! path 484)))
+
+(defun compile-exit! (f exit-code)
+  ; mov rdi, exit-code
+  (write! f 0x48)
+  (write! f 0xbf)
+  (write-int64! f exit-code)
+  ; mov rax, 60 (sys_exit)
+  (write! f 0x48)
+  (write! f 0xb8)
+  (write-int64! f 60)
+  ; syscall
+  (write! f 0x0f)
+  (write! f 0x05))
 
 ; Print `n` (an integer between 0 and 9) inclusive as an ASCII character.
 (defun print-digit! (f n)
