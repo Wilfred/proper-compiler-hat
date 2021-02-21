@@ -1,0 +1,3 @@
+(defun main ()
+  (print (if (file-exists? ".") "exists\n" "does not exist\n"))
+  (print (if (file-exists? "no-such-file") "exists\n" "does not exist\n")))

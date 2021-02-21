@@ -197,6 +197,14 @@ second. Requires integer arguments.
 Divides the first argument by the second. Crashes the program if the
 second argument is zero.
 
+## `file-exists?` function
+
+```
+(file-exists? "no-such-file.txt") ; false
+```
+
+Returns true if the file or directory specified exists.
+
 ## `open!` function
 
 ```

@@ -892,6 +892,58 @@ def compile_exit(args, context):
     return result
 
 
+def compile_file_exists(args, context):
+    assert len(args) == 1, "file-exists? takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_string_check(context))
+    
+    result.extend(compile_tagged_string_to_ptr())
+
+    # String data starts with the size, then the string data
+    # itself. Strings are already null-terminated.
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
+    # Previous expression is in rax, move to 1st argument register.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # From unistd.h.
+    f_ok = 0
+    # mov rsi, flag
+    result.extend([0x48, 0xBE] + int_64bit(f_ok))
+
+    # mov rax, 21 (access)
+    result.extend([0x48, 0xb8] + int_64bit(21))
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # We get 0 in rax if the file exists.
+    # cmp rax, 0
+    result.extend([0x48, 0x3d] + int_32bit(0))
+
+    # write 0x00 or 0x01 to the low byte of rax.
+    # sete al
+    result.extend([0x0F, 0x94, 0xC0])
+
+    # zero the upper three bytes of rax
+    # shl rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    # shr rax, 64 - 8
+    result.extend([0x48, 0xC1, 0xE8, 64-8])
+
+    # set boolean tag.
+    # mov rdi, BOOLEAN_TAG
+    result.extend([0x48, 0xBF] + int_64bit(BOOLEAN_TAG))
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xF8])
+
+    return result
+
+
 def compile_open(args, context):
     assert len(args) == 1, "open! takes exactly one argument"
 
@@ -1195,6 +1247,8 @@ def compile_expr(subtree, context):
             return compile_greater_than(args, context)
         elif fun_name == '=':
             return compile_equals(args, context)
+        elif fun_name == 'file-exists?':
+            return compile_file_exists(args, context)
         elif fun_name == 'open!':
             return compile_open(args, context)
         elif fun_name == 'write!':
