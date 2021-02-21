@@ -180,9 +180,17 @@ def int_32bit(num):
 # for content.
 #
 TAG_BITS = 3
-INTEGER_TAG = 0b000
-STRING_TAG = 0b100
-BOOLEAN_TAG = 0b110
+
+INTEGER_TAG_BITS = 0b000
+STRING_TAG_BITS = 0b100
+BOOLEAN_TAG_BITS = 0b110
+
+BOOLEAN_TAG_BYTE = (BOOLEAN_TAG_BITS << (8 - TAG_BITS))
+BOOLEAN_TAG = BOOLEAN_TAG_BYTE << (8 * 7)
+
+STRING_TAG_BYTE = (STRING_TAG_BITS << (8 - TAG_BITS))
+STRING_TAG = STRING_TAG_BYTE << (8 * 7)
+
 
 
 def zero_rax_tag_bits():
@@ -223,14 +231,11 @@ def compile_ptr_to_tagged_string():
 
     result = []
 
-    # Write STRING_TAG to the most significant byte of rdi.
-    string_tag_byte = (STRING_TAG << (8 - TAG_BITS))
-    
     # TODO: how can we be sure that real string pointers don't have
     # the tag bits set?
 
     # mov rdi, STRING_TAG
-    result.extend([0x48, 0xbf] + int_64bit(string_tag_byte << (8 * 7)))
+    result.extend([0x48, 0xbf] + int_64bit(STRING_TAG))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xf8])
 
@@ -644,9 +649,7 @@ def compile_equals(args, context):
 
     # Set the boolean tag
     # mov rdi, BOOLEAN_TAG
-    boolean_tag_byte = (BOOLEAN_TAG << (8 - TAG_BITS))
-    boolean_tag = boolean_tag_byte << (8 * 7)
-    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -694,9 +697,7 @@ def compile_less_than(args, context):
 
     # Set the boolean tag
     # mov rdi, BOOLEAN_TAG
-    boolean_tag_byte = (BOOLEAN_TAG << (8 - TAG_BITS))
-    boolean_tag = boolean_tag_byte << (8 * 7)
-    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -741,9 +742,7 @@ def compile_greater_than(args, context):
 
     # Set the boolean tag
     # mov rdi, BOOLEAN_TAG
-    boolean_tag_byte = (BOOLEAN_TAG << (8 - TAG_BITS))
-    boolean_tag = boolean_tag_byte << (8 * 7)
-    result.extend([0x48, 0xbf] + int_64bit(boolean_tag))
+    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -775,14 +774,12 @@ def compile_string_literal(value, context):
 
 
 def compile_bool_literal(value):
-    boolean_tag_byte = (BOOLEAN_TAG << (8 - TAG_BITS))
-    boolean_tag = boolean_tag_byte << (8 * 7)
     if value:
         # mov rax, (BOOLEAN_TAG | 1)
-        return [0x48, 0xb8] + int_64bit(boolean_tag | 1)
+        return [0x48, 0xb8] + int_64bit(BOOLEAN_TAG | 1)
     else:
         # mov rax, (BOOLEAN_TAG | 0)
-        return [0x48, 0xb8] + int_64bit(boolean_tag)
+        return [0x48, 0xb8] + int_64bit(BOOLEAN_TAG)
 
 
 def compile_int_check(context):
