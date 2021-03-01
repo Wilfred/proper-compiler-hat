@@ -220,7 +220,8 @@ Deletes the file at the path specified.
 (open "/tmp/foo") ; 123
 ```
 
-Opens the path specified for writing. Returns the file descriptor.
+Opens the path specified for reading and writing. Returns the file
+descriptor.
 
 ## `write!` function
 
