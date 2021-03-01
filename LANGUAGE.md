@@ -205,6 +205,15 @@ second argument is zero.
 
 Returns true if the file or directory specified exists.
 
+## `delete!` function
+
+```
+(delete! "unwanted_file_path.txt")
+```
+
+Deletes the file at the path specified.
+
+
 ## `open` function
 
 ```

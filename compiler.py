@@ -987,6 +987,38 @@ def compile_open(args, context):
     return result
 
 
+def compile_delete(args, context):
+    assert len(args) == 1, "delete! takes exactly one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_string_check(context))
+    
+    result.extend(compile_tagged_string_to_ptr())
+
+    # String data starts with the size, then the string data
+    # itself. Strings are already null-terminated.
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
+    # Previous expression is in rax, move to 1st argument register.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # mov rax, 87 (unlink syscall)
+    result.extend([0x48, 0xb8] + int_64bit(2))
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # TODO: error if we couldn't delete it.
+
+    # We need to return a legal value, so arbitrarily choose 0.
+    result.extend(compile_int_literal(0))
+
+    return result
+
+
 def compile_write(args, context):
     assert len(args) == 2, "write! requires two arguments"
 
@@ -1253,6 +1285,8 @@ def compile_expr(subtree, context):
             return compile_open(args, context)
         elif fun_name == 'write!':
             return compile_write(args, context)
+        elif fun_name == 'delete!':
+            return compile_delete(args, context)
         elif fun_name == 'chmod!':
             return compile_chmod(args, context)
         elif fun_name == 'error':

@@ -1,0 +1,4 @@
+(defun main ()
+  (let (f (open "outfile"))
+    (write! f 42))
+  (delete! "outfile"))
