@@ -205,10 +205,10 @@ second argument is zero.
 
 Returns true if the file or directory specified exists.
 
-## `open!` function
+## `open` function
 
 ```
-(open! "/tmp/foo") ; 123
+(open "/tmp/foo") ; 123
 ```
 
 Opens the path specified for writing. Returns the file descriptor.

@@ -1,6 +1,6 @@
 (defun main ()
   (let (path "a.out"
-        f (open! path))
+        f (open path))
     (write-elf-header! f)
     (compile-exit! f 42)
     (chmod! path 484)))

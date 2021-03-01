@@ -945,7 +945,7 @@ def compile_file_exists(args, context):
 
 
 def compile_open(args, context):
-    assert len(args) == 1, "open! takes exactly one argument"
+    assert len(args) == 1, "open takes exactly one argument"
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1249,7 +1249,7 @@ def compile_expr(subtree, context):
             return compile_equals(args, context)
         elif fun_name == 'file-exists?':
             return compile_file_exists(args, context)
-        elif fun_name == 'open!':
+        elif fun_name == 'open':
             return compile_open(args, context)
         elif fun_name == 'write!':
             return compile_write(args, context)
