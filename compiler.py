@@ -1107,6 +1107,40 @@ def compile_chmod(args, context):
     return result
 
 
+def compile_seek_end(args, context):
+    assert len(args) == 1, "seek-end! requires 1 argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # RDI contains the file descriptor.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # mov rax, 8 (lseek)
+    result.extend([0x48, 0xb8] + int_64bit(8))
+
+    # Offset of zero from the end.
+    # mov rsi, 0
+    result.extend([0x48, 0xBE] + int_64bit(0))
+
+    # Whence is SEEK_END (2 according to unistd.h).
+    # mov rdx, 2
+    result.extend([0x48, 0xBA] + int_64bit(2))
+    
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # TODO: handle lseek errors.
+
+    # Return the number of bytes seeked.
+    result.extend(compile_to_tagged_int())
+
+    return result
+
+
 def compile_add(args, context):
     assert len(args) == 2, "+ takes exactly two arguments"
 
@@ -1288,6 +1322,8 @@ def compile_expr(subtree, context):
             return compile_delete(args, context)
         elif fun_name == 'chmod!':
             return compile_chmod(args, context)
+        elif fun_name == 'seek-end!':
+            return compile_seek_end(args, context)
         elif fun_name == 'error':
             return compile_error(args, context)
         else:

@@ -1,0 +1,3 @@
+(defun main ()
+  (let (f (open "test/fourbytes.txt"))
+    (exit (seek-end! f))))

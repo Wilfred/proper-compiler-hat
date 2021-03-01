@@ -241,6 +241,15 @@ Writes a single byte to the file descriptor specified.
 
 Set permissions on the file at the path specified.
 
+## `seek-end!` function
+
+```
+(let (f (open "existing.txt"))
+  (seek-end! f)) ;; Number of bytes in existing.txt
+```
+
+Seek to the end of file descriptor given, and return the offset.
+
 ## `error` function
 
 ```
