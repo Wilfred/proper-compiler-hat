@@ -1005,7 +1005,7 @@ def compile_delete(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # mov rax, 87 (unlink syscall)
-    result.extend([0x48, 0xb8] + int_64bit(2))
+    result.extend([0x48, 0xb8] + int_64bit(87))
 
     # syscall
     result.extend([0x0f, 0x05])
