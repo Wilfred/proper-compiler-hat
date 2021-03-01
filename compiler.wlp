@@ -1,9 +1,12 @@
 (defun main ()
-  (let (path "a.out"
-        f (open path))
-    (write-elf-header! f)
-    (compile-exit! f 42)
-    (chmod! path 484)))
+  (let (path "a.out")
+    (if (file-exists? path)
+        (delete! path)
+      0)
+    (let (f (open path))
+      (write-elf-header! f)
+      (compile-exit! f 42)
+      (chmod! path 484))))
 
 (defun compile-exit! (f exit-code)
   ; mov rdi, exit-code
