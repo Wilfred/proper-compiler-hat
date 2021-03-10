@@ -276,7 +276,7 @@ def num_bytes(byte_tmpl):
     return total
 
 
-def elf_header_instructions(main_instructions, string_literals):
+def elf_header_instructions(funs_instrs, string_literals):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
     header_tmpl = [
@@ -309,7 +309,7 @@ def elf_header_instructions(main_instructions, string_literals):
     ]
 
     rodata_size = sum(num_bytes_string_lit(lit) for lit in string_literals)
-    prog_length = num_bytes(header_tmpl) + len(main_instructions) + rodata_size
+    prog_length = num_bytes(header_tmpl) + len(funs_instrs) + rodata_size
 
     result = []
     for byte in header_tmpl:
