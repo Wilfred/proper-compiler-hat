@@ -259,11 +259,11 @@ Returns the current offset in the file descriptor given.
 
 Sets the current offset in the file descriptor given.
 
-## `seek-end!` function
+## `file-seek-end!` function
 
 ```
 (let (f (open "existing.txt"))
-  (seek-end! f)) ;; Number of bytes in existing.txt
+  (file-seek-end! f)) ;; Number of bytes in existing.txt
 ```
 
 Seek to the end of file descriptor given, and return the offset.

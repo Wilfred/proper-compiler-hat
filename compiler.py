@@ -1157,8 +1157,8 @@ def compile_chmod(args, context):
     return result
 
 
-def compile_seek_end(args, context):
-    assert len(args) == 1, "seek-end! requires 1 argument"
+def compile_file_seek_end(args, context):
+    assert len(args) == 1, "file-seek-end! requires 1 argument"
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1447,8 +1447,8 @@ def compile_expr(subtree, context):
             return compile_delete(args, context)
         elif fun_name == 'chmod!':
             return compile_chmod(args, context)
-        elif fun_name == 'seek-end!':
-            return compile_seek_end(args, context)
+        elif fun_name == 'file-seek-end!':
+            return compile_file_seek_end(args, context)
         elif fun_name == 'file-seek!':
             return compile_file_seek(args, context)
         elif fun_name == 'file-pos':
