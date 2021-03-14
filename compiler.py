@@ -1191,6 +1191,40 @@ def compile_seek_end(args, context):
     return result
 
 
+def compile_file_pos(args, context):
+    assert len(args) == 1, "file-pos requires 1 argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # RDI contains the file descriptor.
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+
+    # mov rax, 8 (lseek)
+    result.extend([0x48, 0xb8] + int_64bit(8))
+
+    # Offset of zero, we don't want to move the existing offset.
+    # mov rsi, 0
+    result.extend([0x48, 0xBE] + int_64bit(0))
+
+    seek_cur = 1
+    # mov rdx, seek_cur
+    result.extend([0x48, 0xBA] + int_64bit(seek_cur))
+    
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # TODO: handle lseek errors.
+
+    # Return the current file offset.
+    result.extend(compile_to_tagged_int())
+
+    return result
+
+
 def compile_add(args, context):
     assert len(args) == 2, "+ takes exactly two arguments"
 
@@ -1374,6 +1408,8 @@ def compile_expr(subtree, context):
             return compile_chmod(args, context)
         elif fun_name == 'seek-end!':
             return compile_seek_end(args, context)
+        elif fun_name == 'file-pos':
+            return compile_file_pos(args, context)
         elif fun_name == 'error':
             return compile_error(args, context)
         elif fun_name == 'allocate':

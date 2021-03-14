@@ -241,6 +241,15 @@ Writes a single byte to the file descriptor specified.
 
 Set permissions on the file at the path specified.
 
+## `file-pos` function
+
+```
+(let (f (open "existing.txt"))
+  (file-pos 0)) ;; 0
+```
+
+Returns the current offset in the file descriptor given.
+
 ## `seek-end!` function
 
 ```
