@@ -182,6 +182,23 @@ def int_32bit(num):
     """
     return list(num.to_bytes(4, 'little', signed=True))
 
+
+def asm(*args):
+    """Return the raw bytes of the assembly mnemonic given.
+
+    >> asm('syscall')
+    
+
+    """
+    assert len(args) > 0
+
+    name = args[0]
+    if name == 'syscall':
+        return [0x0f, 0x05]
+    
+    assert False, "Unsupported assembly mnemonic: {}".format(name)
+
+
 # TAGGING SCHEME
 #
 # We use the top bits to tag the runtime type, leaving the rest
@@ -286,8 +303,7 @@ def compile_allocate_intrinsic(args, context):
     # mov r9, $offset
     result.extend([0x49, 0xb9] + int_64bit(0))
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     return result
 
@@ -328,8 +344,7 @@ def compile_read_intrinsic(args, context):
     # mov rax, 0 (read syscall)
     result.extend([0x48, 0xb8] + int_64bit(0))
     
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # Defensively return 0.
     result.extend(compile_int_literal(0))
@@ -482,8 +497,7 @@ def compile_print(args, context):
         0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 1 (1 = stdout)
     ])
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # Use the argument as the return value.
     # TODO: define a null type.
@@ -536,16 +550,14 @@ def compile_error(args, context):
     # mov edi, 2 (2 = stderr)
     result.extend([0xbf] + int_32bit(2))
     
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # mov rdi, 1 (exit code)
     result.extend([0x48, 0xbf] + int_64bit(1))
     result.extend([
         # mov eax, 60 (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00,
-        # syscall
-        0x0f, 0x05])
+        0xb8, 0x3c, 0x00, 0x00, 0x00])
+    result.extend(asm('syscall'))
 
     return result
 
@@ -949,16 +961,14 @@ def compile_die(message, context):
 
     # mov rdx, len(literal)
     result.extend([0x48, 0xba] + int_64bit(len(message)))
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # mov rdi, 1 (exit code)
     result.extend([0x48, 0xbf] + int_64bit(1))
     result.extend([
         # mov eax, 60 (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00,
-        # syscall
-        0x0f, 0x05])
+        0xb8, 0x3c, 0x00, 0x00, 0x00])
+    result.extend(asm('syscall'))
 
     return result
 
@@ -1014,9 +1024,8 @@ def compile_exit(args, context):
     result.extend([
         # mov $60 %eax (60 = sys_exit)
         0xb8, 0x3c, 0x00, 0x00, 0x00,
-        # syscall
-        0x0f, 0x05,
     ])
+    result.extend(asm('syscall'))
 
     return result
 
@@ -1047,8 +1056,7 @@ def compile_file_exists(args, context):
     # mov rax, 21 (access)
     result.extend([0x48, 0xb8] + int_64bit(21))
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # We get 0 in rax if the file exists.
     # cmp rax, 0
@@ -1104,8 +1112,7 @@ def compile_open(args, context):
     # mov eax, 2 (2 = sys_open)
     result.extend([0xb8, 0x02, 0x00, 0x00, 0x00])
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # TODO: error if we get a negative file descriptor.
 
@@ -1136,8 +1143,7 @@ def compile_delete(args, context):
     # mov rax, 87 (unlink syscall)
     result.extend([0x48, 0xb8] + int_64bit(87))
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # TODO: error if we couldn't delete it.
 
@@ -1183,8 +1189,7 @@ def compile_write(args, context):
     # mov rax, 1
     result.extend([0x48, 0xB8] + int_64bit(1))
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # Clean up stack.
     # This also means we're arbitrarily returning the second argument,
@@ -1227,8 +1232,7 @@ def compile_chmod(args, context):
     # mov rax, 90
     result.extend([0x48, 0xb8] + int_64bit(90))
 
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # Arbitrarily return zero since we don't have null yet.
     result.extend(compile_int_literal(0))
@@ -1259,8 +1263,7 @@ def compile_file_seek_end(args, context):
     # mov rdx, 2
     result.extend([0x48, 0xBA] + int_64bit(2))
     
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # TODO: handle lseek errors.
 
@@ -1300,8 +1303,7 @@ def compile_file_seek(args, context):
     # mov rdx, seek_set
     result.extend([0x48, 0xBA] + int_64bit(seek_set))
     
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # TODO: handle lseek errors.
 
@@ -1334,8 +1336,7 @@ def compile_file_pos(args, context):
     # mov rdx, seek_cur
     result.extend([0x48, 0xBA] + int_64bit(seek_cur))
     
-    # syscall
-    result.extend([0x0f, 0x05])
+    result.extend(asm('syscall'))
 
     # TODO: handle lseek errors.
 
