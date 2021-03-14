@@ -67,7 +67,7 @@ def lex(src):
                     i += 1
                 
             i += 1
-        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=', '*']:
+        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=', '*', '_']:
             if token is None:
                 token = c
             else:
