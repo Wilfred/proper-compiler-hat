@@ -337,6 +337,40 @@ def compile_read_intrinsic(args, context):
     return result
 
 
+def compile_pointer_to_string_intrinsic(args, context):
+    assert len(args) == 2, "__pointer-to-string requires 2 arguments"
+    
+    result = []
+
+    # First argument: pointer that string has been written into.
+    result.extend(compile_expr(args[0], context))
+
+    # push rax
+    result.extend([0x50])
+
+    # Second argument is string length.
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # Write the string length to the first 64-bits of the memory that the
+    # pointer points to.
+    # pop rsi
+    result.extend([0x5E])
+    # mov [rsi], rax
+    result.extend([0x48, 0x89, 0x06])
+
+    # mov rax, rsi
+    result.extend([0x48, 0x89, 0xF0])
+
+    # mov rdi, STRING_TAG
+    result.extend([0x48, 0xbf] + int_64bit(STRING_TAG))
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xf8])
+
+    return result
+
+
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
     of bytes that the final output will have.
@@ -1504,6 +1538,8 @@ def compile_expr(subtree, context):
             return compile_allocate_intrinsic(args, context)
         elif fun_name == '__read':
             return compile_read_intrinsic(args, context)
+        elif fun_name == '__pointer-to-string':
+            return compile_pointer_to_string_intrinsic(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:
