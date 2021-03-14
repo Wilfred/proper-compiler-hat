@@ -168,6 +168,14 @@ def int_64bit(num):
     return list(num.to_bytes(8, 'little'))
 
 
+def signed_int_64bit(num):
+    """Return `num` as a list of bytes of its 64-bit signed
+    representation.
+
+    """
+    return list(num.to_bytes(8, 'little', signed=True))
+
+
 def int_32bit(num):
     """Return `num` as a list of bytes of its 32-bit representation.
 
@@ -244,6 +252,44 @@ def compile_ptr_to_tagged_string():
 
 def compile_tagged_string_to_ptr():
     return zero_rax_tag_bits()
+
+
+def compile_allocate(args, context):
+    assert len(args) == 1, "allocate requires one argument"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    
+    # mov rsi, rax (num bytes in rsi, from argument)
+    result.extend([0x48, 0x89, 0xC6])
+
+    # call mmap, which is syscall 9
+    # mov rax, 9
+    result.extend([0x48, 0xb8] + int_64bit(9))
+
+    # mov rdi, 0 (address)
+    result.extend([0x48, 0xbf] + int_64bit(0))
+
+    # mov rdx, $protect (read | write)
+    read_write = 0x1 | 0x2
+    result.extend([0x48, 0xba] + int_64bit(read_write))
+
+    # mov r10, $flags MAP_ANONYMOUS
+    map_anonymous = 0x20
+    map_private = 0x02
+    result.extend([0x49, 0xba] + int_64bit(map_anonymous | map_private))
+
+    # mov r8, -1 (file descriptor)
+    result.extend([0x49, 0xb8] + signed_int_64bit(-1))
+
+    # mov r9, $offset
+    result.extend([0x49, 0xb9] + int_64bit(0))
+
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    return result
 
 
 def num_bytes(byte_tmpl):
@@ -1326,6 +1372,8 @@ def compile_expr(subtree, context):
             return compile_seek_end(args, context)
         elif fun_name == 'error':
             return compile_error(args, context)
+        elif fun_name == 'allocate':
+            return compile_allocate(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:
