@@ -250,6 +250,15 @@ Set permissions on the file at the path specified.
 
 Returns the current offset in the file descriptor given.
 
+## `file-seek!` function
+
+```
+(let (f (open "existing.txt"))
+  (file-seek! f 5))
+```
+
+Sets the current offset in the file descriptor given.
+
 ## `seek-end!` function
 
 ```

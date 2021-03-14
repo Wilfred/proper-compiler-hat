@@ -1191,6 +1191,47 @@ def compile_seek_end(args, context):
     return result
 
 
+def compile_file_seek(args, context):
+    assert len(args) == 2, "file-seek! requires 2 arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # push rax
+    result.extend([0x50])
+
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # Second argument is the file offset, which is RSI for this syscall.
+    # mov rsi, rax
+    result.extend([0x48, 0x89, 0xC6])
+
+    # RDI contains the file descriptor for this syscall.
+    # pop rdi
+    result.extend([0x5F])
+
+    # mov rax, 8 (lseek)
+    result.extend([0x48, 0xb8] + int_64bit(8))
+
+    seek_set = 0
+    # mov rdx, seek_set
+    result.extend([0x48, 0xBA] + int_64bit(seek_set))
+    
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # TODO: handle lseek errors.
+
+    # Return 0.
+    result.extend(compile_int_literal(0))
+
+    return result
+
+
 def compile_file_pos(args, context):
     assert len(args) == 1, "file-pos requires 1 argument"
 
@@ -1408,6 +1449,8 @@ def compile_expr(subtree, context):
             return compile_chmod(args, context)
         elif fun_name == 'seek-end!':
             return compile_seek_end(args, context)
+        elif fun_name == 'file-seek!':
+            return compile_file_seek(args, context)
         elif fun_name == 'file-pos':
             return compile_file_pos(args, context)
         elif fun_name == 'error':

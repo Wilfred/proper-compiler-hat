@@ -1,0 +1,5 @@
+(defun main ()
+  (let (f (open "test/fourbytes.txt"))
+    (seek-end! f)
+    (file-seek! f 0)
+    (exit (file-pos f))))
