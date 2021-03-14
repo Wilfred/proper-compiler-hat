@@ -254,8 +254,8 @@ def compile_tagged_string_to_ptr():
     return zero_rax_tag_bits()
 
 
-def compile_allocate(args, context):
-    assert len(args) == 1, "allocate requires one argument"
+def compile_allocate_intrinsic(args, context):
+    assert len(args) == 1, "__allocate requires one argument"
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1455,8 +1455,8 @@ def compile_expr(subtree, context):
             return compile_file_pos(args, context)
         elif fun_name == 'error':
             return compile_error(args, context)
-        elif fun_name == 'allocate':
-            return compile_allocate(args, context)
+        elif fun_name == '__allocate':
+            return compile_allocate_intrinsic(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:
