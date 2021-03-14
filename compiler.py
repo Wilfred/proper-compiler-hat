@@ -292,6 +292,48 @@ def compile_allocate_intrinsic(args, context):
     return result
 
 
+def compile_read_intrinsic(args, context):
+    assert len(args) == 3, "__read requires 3 arguments"
+    
+    result = []
+
+    # First argument: file descriptor
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # push rax
+    result.extend([0x50])
+
+    # Second argument: raw pointer. No runtime tag checks.
+    result.extend(compile_expr(args[1], context))
+
+    # push rax
+    result.extend([0x50])
+
+    # Third argument: number of bytes.
+    result.extend(compile_expr(args[2], context))
+    result.extend(compile_int_check(context))
+    result.extend(compile_from_tagged_int())
+
+    # pop rsi
+    result.extend([0x5E])
+
+    # pop rdi
+    result.extend([0x5F])
+
+    # mov rax, 0 (read syscall)
+    result.extend([0x48, 0xb8] + int_64bit(0))
+    
+    # syscall
+    result.extend([0x0f, 0x05])
+
+    # Defensively return 0.
+    result.extend(compile_int_literal(0))
+
+    return result
+
+
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
     of bytes that the final output will have.
@@ -1457,6 +1499,8 @@ def compile_expr(subtree, context):
             return compile_error(args, context)
         elif fun_name == '__allocate':
             return compile_allocate_intrinsic(args, context)
+        elif fun_name == '__read':
+            return compile_read_intrinsic(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:
