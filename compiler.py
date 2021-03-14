@@ -829,6 +829,10 @@ def compile_bool_literal(value):
 
 
 def compile_int_check(context):
+    """Throw a runtime error if the value in rax is not an integer.
+    Does not modify rax.
+
+    """
     error_block = compile_die(b"not an int :(\n", context)
 
     result = []
@@ -1161,7 +1165,7 @@ def compile_seek_end(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
-    # RDI contains the file descriptor.
+    # RDI contains the file descriptor for this syscall.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
