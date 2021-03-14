@@ -1055,10 +1055,10 @@ def compile_open(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/fcntl.h
-    o_wronly = 0o1
+    o_rdwr = 0o2
     o_creat = 0o100
     # mov rsi, flag
-    result.extend([0x48, 0xBE] + int_64bit(o_wronly | o_creat))
+    result.extend([0x48, 0xBE] + int_64bit(o_rdwr | o_creat))
 
     mode = 0o644
     # mov rdx, mode
