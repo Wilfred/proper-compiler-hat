@@ -316,6 +316,9 @@ def compile_read_intrinsic(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
+    # mov rdx, rax
+    result.extend([0x48, 0x89, 0xC2])
+
     # pop rsi
     result.extend([0x5E])
 
