@@ -184,15 +184,31 @@ def int_32bit(num):
 
 
 def asm(*args):
-    """Return the raw bytes of the assembly mnemonic given.
+    """Return the raw bytes of the assembly mnemonic given. Uses intel
+    syntax, with the destination first.
 
-    >> asm('syscall')
-    
+    >>> asm('syscall')
+    >>> asm('pop', 'rax')
+    >>> asm('mov', 'rax', 1)
 
     """
     assert len(args) > 0
 
     name = args[0]
+    if name == 'mov':
+        assert len(args) == 3
+        dest = args[1]
+        source = args[2]
+
+        if not isinstance(source, int):
+            assert False, "Only immediate values are supported for mov: {!r}".format(dest)
+        if dest == 'rax':
+            return [0x48, 0xB8] + int_64bit(source)
+        elif dest == 'rsi':
+            return [0x48, 0xBE] + int_64bit(source)
+        else:
+            assert False, "Unsupported argument to mov: {!r}".format(dest)
+
     if name == 'syscall':
         return [0x0f, 0x05]
     if name == 'ret':
@@ -306,8 +322,7 @@ def compile_allocate_intrinsic(args, context):
     result.extend([0x48, 0x89, 0xC6])
 
     # call mmap, which is syscall 9
-    # mov rax, 9
-    result.extend([0x48, 0xb8] + int_64bit(9))
+    result.extend(asm('mov', 'rax', 9))
 
     # mov rdi, 0 (address)
     result.extend([0x48, 0xbf] + int_64bit(0))
@@ -360,8 +375,8 @@ def compile_read_intrinsic(args, context):
     result.extend(asm('pop', 'rsi'))
     result.extend(asm('pop', 'rdi'))
 
-    # mov rax, 0 (read syscall)
-    result.extend([0x48, 0xb8] + int_64bit(0))
+    # 0 represents the read syscall.
+    result.extend(asm('mov', 'rax', 0))
     
     result.extend(asm('syscall'))
 
@@ -898,9 +913,7 @@ def compile_greater_than(args, context):
 
 def compile_int_literal(val):
     result = []
-    # mov rax, VAL
-    result.extend([0x48, 0xb8] + int_64bit(val))
-
+    result.extend(asm('mov', 'rax', val))
     result.extend(compile_to_tagged_int())
     return result
 
@@ -921,11 +934,9 @@ def compile_string_literal(value, context):
 
 def compile_bool_literal(value):
     if value:
-        # mov rax, (BOOLEAN_TAG | 1)
-        return [0x48, 0xb8] + int_64bit(BOOLEAN_TAG | 1)
+        return asm('mov', 'rax', BOOLEAN_TAG | 1)
     else:
-        # mov rax, (BOOLEAN_TAG | 0)
-        return [0x48, 0xb8] + int_64bit(BOOLEAN_TAG)
+        return asm('mov', 'rax', BOOLEAN_TAG)
 
 
 def compile_int_check(context):
@@ -1059,12 +1070,10 @@ def compile_file_exists(args, context):
 
     # From unistd.h.
     f_ok = 0
-    # mov rsi, flag
-    result.extend([0x48, 0xBE] + int_64bit(f_ok))
+    result.extend(asm('mov', 'rsi', f_ok))
 
-    # mov rax, 21 (access)
-    result.extend([0x48, 0xb8] + int_64bit(21))
-
+    # 21 represents the access syscall.
+    result.extend(asm('mov', 'rax', 21))
     result.extend(asm('syscall'))
 
     # We get 0 in rax if the file exists.
@@ -1112,7 +1121,7 @@ def compile_open(args, context):
     o_rdwr = 0o2
     o_creat = 0o100
     # mov rsi, flag
-    result.extend([0x48, 0xBE] + int_64bit(o_rdwr | o_creat))
+    result.extend(asm('mov', 'rsi', o_rdwr | o_creat))
 
     mode = 0o644
     # mov rdx, mode
@@ -1149,9 +1158,8 @@ def compile_delete(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # mov rax, 87 (unlink syscall)
-    result.extend([0x48, 0xb8] + int_64bit(87))
-
+    # 87 represents the unlink syscall.
+    result.extend(asm('mov', 'rax', 87))
     result.extend(asm('syscall'))
 
     # TODO: error if we couldn't delete it.
@@ -1193,10 +1201,8 @@ def compile_write(args, context):
     # mov rdx, 1
     result.extend([0x48, 0xBA] + int_64bit(1))
 
-    # 1 = sys_write
-    # mov rax, 1
-    result.extend([0x48, 0xB8] + int_64bit(1))
-
+    # 1 represents the write syscall.
+    result.extend(asm('mov', 'rax', 1))
     result.extend(asm('syscall'))
 
     # Clean up stack.
@@ -1234,8 +1240,7 @@ def compile_chmod(args, context):
     result.extend([0x48, 0x89, 0xc6])
 
     # chmod has syscall number 90.
-    # mov rax, 90
-    result.extend([0x48, 0xb8] + int_64bit(90))
+    result.extend(asm('mov', 'rax', 90))
 
     result.extend(asm('syscall'))
 
@@ -1258,11 +1263,10 @@ def compile_file_seek_end(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # mov rax, 8 (lseek)
-    result.extend([0x48, 0xb8] + int_64bit(8))
+    result.extend(asm('mov', 'rax', 8))
 
     # Offset of zero from the end.
-    # mov rsi, 0
-    result.extend([0x48, 0xBE] + int_64bit(0))
+    result.extend(asm('mov', 'rsi', 0))
 
     # Whence is SEEK_END (2 according to unistd.h).
     # mov rdx, 2
@@ -1300,7 +1304,7 @@ def compile_file_seek(args, context):
     result.extend(asm('pop', 'rdi'))
 
     # mov rax, 8 (lseek)
-    result.extend([0x48, 0xb8] + int_64bit(8))
+    result.extend(asm('mov', 'rax', 8))
 
     seek_set = 0
     # mov rdx, seek_set
@@ -1329,11 +1333,10 @@ def compile_file_pos(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # mov rax, 8 (lseek)
-    result.extend([0x48, 0xb8] + int_64bit(8))
+    result.extend(asm('mov', 'rax', 8))
 
     # Offset of zero, we don't want to move the existing offset.
-    # mov rsi, 0
-    result.extend([0x48, 0xBE] + int_64bit(0))
+    result.extend(asm('mov', 'rsi', 0))
 
     seek_cur = 1
     # mov rdx, seek_cur
