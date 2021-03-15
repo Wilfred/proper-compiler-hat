@@ -195,8 +195,17 @@ def asm(*args):
     name = args[0]
     if name == 'syscall':
         return [0x0f, 0x05]
+    if name == 'push':
+        assert len(args) == 2
+        reg = args[1]
+        if reg == 'rax':
+            return [0x50]
+        elif reg == 'rbp':
+            return [0x55]
+        else:
+            assert False, "Unsupported argument to push: {!r}".format(reg)
     
-    assert False, "Unsupported assembly mnemonic: {}".format(name)
+    assert False, "Unsupported assembly: {!r}".format(args)
 
 
 # TAGGING SCHEME
@@ -318,14 +327,12 @@ def compile_read_intrinsic(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Second argument: raw pointer. No runtime tag checks.
     result.extend(compile_expr(args[1], context))
 
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Third argument: number of bytes.
     result.extend(compile_expr(args[2], context))
@@ -360,8 +367,7 @@ def compile_pointer_to_string_intrinsic(args, context):
     # First argument: pointer that string has been written into.
     result.extend(compile_expr(args[0], context))
 
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Second argument is string length.
     result.extend(compile_expr(args[1], context))
@@ -474,8 +480,7 @@ def compile_print(args, context):
     result.extend(compile_string_check(context))
 
     # Save the value, so we can restore it after the syscall.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
     
     result.extend(compile_tagged_string_to_ptr())
 
@@ -762,8 +767,7 @@ def compile_equals(args, context):
     result.extend(compile_expr(args[0], context))
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -804,8 +808,7 @@ def compile_less_than(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -852,8 +855,7 @@ def compile_greater_than(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1169,8 +1171,7 @@ def compile_write(args, context):
     result.extend(compile_int_check(context))
 
     # We need the byte in memory, so we can pass a pointer.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # rsp now points to the byte we want to write.
     # mov rsi, rsp
@@ -1211,8 +1212,7 @@ def compile_chmod(args, context):
     # add rax, 8
     result.extend([0x48, 0x05] + int_32bit(8))
 
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
     
     # First syscall argument in RDI.
 
@@ -1281,8 +1281,7 @@ def compile_file_seek(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     result.extend(compile_expr(args[1], context))
     result.extend(compile_int_check(context))
@@ -1356,8 +1355,7 @@ def compile_add(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1385,8 +1383,7 @@ def compile_subtract(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1417,8 +1414,7 @@ def compile_multiply(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1447,8 +1443,7 @@ def compile_intdiv(args, context):
     result.extend(compile_from_tagged_int())
     
     # Push first argument, so we can reuse rax.
-    # push rax
-    result.extend([0x50])
+    result.extend(asm('push', 'rax'))
 
     # Evaluate second argument, result in RAX.
     result.extend(compile_expr(args[1], context))
@@ -1580,10 +1575,8 @@ def compile_call(fun_name, args, context):
 
     for arg in reversed(args):
         result.extend(compile_expr(arg, context))
+        result.extend(asm('push', 'rax'))
 
-        # push rax
-        result.extend([0x50])
-    
     # CALL opcode
     result.extend([0xE8])
 
@@ -1654,8 +1647,7 @@ def compile_fun(ast, context):
     fun_tmpl = []
 
     # Function prologue, setting up the stack.
-    # push rbp
-    fun_tmpl.extend([0x55])
+    fun_tmpl.extend(asm('push', 'rbp'))
     # mov rbp, rsp
     fun_tmpl.extend([0x48, 0x89, 0xE5])
 
