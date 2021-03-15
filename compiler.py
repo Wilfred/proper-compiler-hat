@@ -206,6 +206,19 @@ def asm(*args):
             return [0x55]
         else:
             assert False, "Unsupported argument to push: {!r}".format(reg)
+    if name == 'pop':
+        assert len(args) == 2
+        reg = args[1]
+        if reg == 'rax':
+            return [0x58]
+        elif reg == 'rbp':
+            return [0x5D]
+        elif reg == 'rsi':
+            return [0x5E]
+        elif reg == 'rdi':
+            return [0x5F]
+        else:
+            assert False, "Unsupported argument to push: {!r}".format(reg)
     
     assert False, "Unsupported assembly: {!r}".format(args)
 
@@ -344,11 +357,8 @@ def compile_read_intrinsic(args, context):
     # mov rdx, rax
     result.extend([0x48, 0x89, 0xC2])
 
-    # pop rsi
-    result.extend([0x5E])
-
-    # pop rdi
-    result.extend([0x5F])
+    result.extend(asm('pop', 'rsi'))
+    result.extend(asm('pop', 'rdi'))
 
     # mov rax, 0 (read syscall)
     result.extend([0x48, 0xb8] + int_64bit(0))
@@ -378,8 +388,7 @@ def compile_pointer_to_string_intrinsic(args, context):
 
     # Write the string length to the first 64-bits of the memory that the
     # pointer points to.
-    # pop rsi
-    result.extend([0x5E])
+    result.extend(asm('pop', 'rsi'))
     # mov [rsi], rax
     result.extend([0x48, 0x89, 0x06])
 
@@ -508,8 +517,7 @@ def compile_print(args, context):
 
     # Use the argument as the return value.
     # TODO: define a null type.
-    # pop rax
-    result.extend([0x58])
+    result.extend(asm('pop', 'rax'))
 
     return result
 
@@ -774,8 +782,7 @@ def compile_equals(args, context):
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
 
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -818,8 +825,7 @@ def compile_less_than(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -865,8 +871,7 @@ def compile_greater_than(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -1197,8 +1202,7 @@ def compile_write(args, context):
     # Clean up stack.
     # This also means we're arbitrarily returning the second argument,
     # because we dont have a null type yet.
-    # pop rax
-    result.extend([0x58])
+    result.extend(asm('pop', 'rax'))
 
     return result
 
@@ -1223,8 +1227,7 @@ def compile_chmod(args, context):
     result.extend(compile_from_tagged_int())
 
     # First syscall argument in RDI.
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # Second syscall argument in RSI.
     # mov rsi, rax
@@ -1294,8 +1297,7 @@ def compile_file_seek(args, context):
     result.extend([0x48, 0x89, 0xC6])
 
     # RDI contains the file descriptor for this syscall.
-    # pop rdi
-    result.extend([0x5F])
+    result.extend(asm('pop', 'rdi'))
 
     # mov rax, 8 (lseek)
     result.extend([0x48, 0xb8] + int_64bit(8))
@@ -1365,8 +1367,7 @@ def compile_add(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xf8])
@@ -1396,8 +1397,7 @@ def compile_subtract(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # pop rax
-    result.extend([0x58])
+    result.extend(asm('pop', 'rax'))
 
     # sub rax, rdi
     result.extend([0x48, 0x29, 0xF8])
@@ -1424,8 +1424,7 @@ def compile_multiply(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    # pop rdi
-    result.extend([0x5f])
+    result.extend(asm('pop', 'rdi'))
 
     # imul rax, rdi
     result.extend([0x48, 0x0F, 0xAF, 0xC7])
@@ -1457,8 +1456,7 @@ def compile_intdiv(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # pop rax
-    result.extend([0x58])
+    result.extend(asm('pop', 'rax'))
 
     # DIV uses RDX:RAX as its source, so ensure RDX is zero.
     # mov rdx, 0
@@ -1659,8 +1657,7 @@ def compile_fun(ast, context):
     # Function epilogue.
     # mov rsp, rbp
     fun_tmpl.extend([0x48, 0x89, 0xEC])
-    # pop rbp
-    fun_tmpl.extend([0x5D])
+    fun_tmpl.extend(asm('pop', 'rbp'))
     fun_tmpl.extend(asm('ret'))
 
     context['instr_bytes'] += num_bytes(fun_tmpl)
