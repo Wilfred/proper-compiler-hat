@@ -195,6 +195,8 @@ def asm(*args):
     name = args[0]
     if name == 'syscall':
         return [0x0f, 0x05]
+    if name == 'ret':
+        return [0xC3]
     if name == 'push':
         assert len(args) == 2
         reg = args[1]
@@ -1659,8 +1661,7 @@ def compile_fun(ast, context):
     fun_tmpl.extend([0x48, 0x89, 0xEC])
     # pop rbp
     fun_tmpl.extend([0x5D])
-    # ret
-    fun_tmpl.extend([0xC3])
+    fun_tmpl.extend(asm('ret'))
 
     context['instr_bytes'] += num_bytes(fun_tmpl)
     context.pop('locals')
