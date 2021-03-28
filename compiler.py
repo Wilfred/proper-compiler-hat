@@ -200,14 +200,28 @@ def asm(*args):
         dest = args[1]
         source = args[2]
 
-        if not isinstance(source, int):
-            assert False, "Only immediate values are supported for mov: {!r}".format(dest)
-        if dest == 'rax':
-            return [0x48, 0xB8] + int_64bit(source)
-        elif dest == 'rsi':
-            return [0x48, 0xBE] + int_64bit(source)
-        else:
-            assert False, "Unsupported argument to mov: {!r}".format(dest)
+        if source == 'rsi':
+            pass
+
+        if isinstance(source, int):
+            # TODO: list out registers by encoding value, rather than
+            # this verbose list of if statements.
+            if dest == 'rax':
+                return [0x48, 0xB8] + int_64bit(source)
+            elif dest == 'rdx':
+                return [0x48, 0xBA] + int_64bit(source)
+            elif dest == 'rsi':
+                return [0x48, 0xBE] + int_64bit(source)
+            elif dest == 'rdi':
+                return [0x48, 0xBF] + int_64bit(source)
+            elif dest == 'r8':
+                return [0x49, 0xB8] + int_64bit(source)
+            elif dest == 'r9':
+                return [0x49, 0xB9] + int_64bit(source)
+            elif dest == 'r10':
+                return [0x49, 0xBA] + int_64bit(source)
+
+        assert False, "Unsupported argument to mov: {!r}".format(dest)
 
     if name == 'syscall':
         return [0x0f, 0x05]
@@ -299,8 +313,7 @@ def compile_ptr_to_tagged_string():
     # TODO: how can we be sure that real string pointers don't have
     # the tag bits set?
 
-    # mov rdi, STRING_TAG
-    result.extend([0x48, 0xbf] + int_64bit(STRING_TAG))
+    result.extend(asm('mov', 'rdi', STRING_TAG))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xf8])
 
@@ -324,23 +337,23 @@ def compile_allocate_intrinsic(args, context):
     # call mmap, which is syscall 9
     result.extend(asm('mov', 'rax', 9))
 
-    # mov rdi, 0 (address)
-    result.extend([0x48, 0xbf] + int_64bit(0))
+    # Address in rdi, which is 0.
+    result.extend(asm('mov', 'rdi', 0))
 
-    # mov rdx, $protect (read | write)
+    # rdx holds $protect
     read_write = 0x1 | 0x2
     result.extend([0x48, 0xba] + int_64bit(read_write))
 
-    # mov r10, $flags MAP_ANONYMOUS
+    # r10 holds $flags
     map_anonymous = 0x20
     map_private = 0x02
-    result.extend([0x49, 0xba] + int_64bit(map_anonymous | map_private))
+    result.extend(asm('mov', 'r10', map_anonymous | map_private))
 
     # mov r8, -1 (file descriptor)
     result.extend([0x49, 0xb8] + signed_int_64bit(-1))
 
     # mov r9, $offset
-    result.extend([0x49, 0xb9] + int_64bit(0))
+    result.extend(asm('mov', 'r9', 0))
 
     result.extend(asm('syscall'))
 
@@ -523,10 +536,11 @@ def compile_print(args, context):
     # mov rsi, rax
     result.extend([0x48, 0x89, 0xc6])
 
-    result.extend([
-        0xb8, 0x01, 0x00, 0x00, 0x00, # mov eax, 1 (1 = sys_write)
-        0xbf, 0x01, 0x00, 0x00, 0x00, # mov edi, 1 (1 = stdout)
-    ])
+    # 1 = write syscall
+    result.extend(asm('mov', 'rax', 1))
+
+    # 1 = stdout
+    result.extend(asm('mov', 'rdi', 1))
 
     result.extend(asm('syscall'))
 
@@ -574,19 +588,19 @@ def compile_error(args, context):
     # mov rsi, rax
     result.extend([0x48, 0x89, 0xC6])
 
-    # mov eax, 1 (1 = sys_write)
-    result.extend([0xb8] + int_32bit(1))
+    # 1 = write syscall
+    result.extend(asm('mov', 'rax', 1))
         
-    # mov edi, 2 (2 = stderr)
-    result.extend([0xbf] + int_32bit(2))
+    # 2 = stderr
+    result.extend(asm('mov', 'rdi', 2))
     
     result.extend(asm('syscall'))
 
-    # mov rdi, 1 (exit code)
-    result.extend([0x48, 0xbf] + int_64bit(1))
-    result.extend([
-        # mov eax, 60 (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00])
+    # 1 = exit code
+    result.extend(asm('mov', 'rdi', 1))
+
+    # 60 = exit
+    result.extend(asm('mov', 'rax', 60))
     result.extend(asm('syscall'))
 
     return result
@@ -813,8 +827,7 @@ def compile_equals(args, context):
     result.extend([0x48, 0xC1, 0xE8, 64-8])
 
     # Set the boolean tag
-    # mov rdi, BOOLEAN_TAG
-    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
+    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -859,8 +872,7 @@ def compile_less_than(args, context):
     result.extend([0x48, 0xC1, 0xE8, 64-8])
 
     # Set the boolean tag
-    # mov rdi, BOOLEAN_TAG
-    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
+    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -902,8 +914,7 @@ def compile_greater_than(args, context):
     result.extend([0x48, 0xC1, 0xE8, 64-8])
 
     # Set the boolean tag
-    # mov rdi, BOOLEAN_TAG
-    result.extend([0x48, 0xbf] + int_64bit(BOOLEAN_TAG))
+    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
@@ -984,10 +995,10 @@ def compile_die(message, context):
     result.extend(asm('syscall'))
 
     # mov rdi, 1 (exit code)
-    result.extend([0x48, 0xbf] + int_64bit(1))
-    result.extend([
-        # mov eax, 60 (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00])
+    result.extend(asm('mov', 'rdi', 1))
+
+    # 60 = sys_exit
+    result.extend(asm('mov', 'rax', 60))
     result.extend(asm('syscall'))
 
     return result
@@ -1090,9 +1101,8 @@ def compile_file_exists(args, context):
     # shr rax, 64 - 8
     result.extend([0x48, 0xC1, 0xE8, 64-8])
 
-    # set boolean tag.
-    # mov rdi, BOOLEAN_TAG
-    result.extend([0x48, 0xBF] + int_64bit(BOOLEAN_TAG))
+    # Set boolean tag.
+    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
 
@@ -1198,8 +1208,7 @@ def compile_write(args, context):
     result.extend([0x48, 0x89, 0xCF])
 
     # We're only writing one byte.
-    # mov rdx, 1
-    result.extend([0x48, 0xBA] + int_64bit(1))
+    result.extend(asm('mov', 'rdx', 1))
 
     # 1 represents the write syscall.
     result.extend(asm('mov', 'rax', 1))
@@ -1262,15 +1271,14 @@ def compile_file_seek_end(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # mov rax, 8 (lseek)
+    # 8 = lseek
     result.extend(asm('mov', 'rax', 8))
 
     # Offset of zero from the end.
     result.extend(asm('mov', 'rsi', 0))
 
     # Whence is SEEK_END (2 according to unistd.h).
-    # mov rdx, 2
-    result.extend([0x48, 0xBA] + int_64bit(2))
+    result.extend(asm('mov', 'rdx', 2))
     
     result.extend(asm('syscall'))
 
@@ -1303,7 +1311,7 @@ def compile_file_seek(args, context):
     # RDI contains the file descriptor for this syscall.
     result.extend(asm('pop', 'rdi'))
 
-    # mov rax, 8 (lseek)
+    # 8 = lseek
     result.extend(asm('mov', 'rax', 8))
 
     seek_set = 0
@@ -1332,7 +1340,7 @@ def compile_file_pos(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    # mov rax, 8 (lseek)
+    # 8 = lseek
     result.extend(asm('mov', 'rax', 8))
 
     # Offset of zero, we don't want to move the existing offset.
@@ -1462,8 +1470,7 @@ def compile_intdiv(args, context):
     result.extend(asm('pop', 'rax'))
 
     # DIV uses RDX:RAX as its source, so ensure RDX is zero.
-    # mov rdx, 0
-    result.extend([0x48, 0xBA] + int_64bit(0))
+    result.extend(asm('mov', 'rdx', 0))
 
     # div rdi
     result.extend([0x48, 0xF7, 0xF7])
