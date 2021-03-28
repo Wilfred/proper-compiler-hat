@@ -523,7 +523,6 @@ def compile_print(args, context):
     
     result.extend(compile_tagged_string_to_ptr())
 
-    # TODO: we need the ability to get length of strings created at runtime.
     # The first 8 bytes of a string store the length, so copy it to rdx.
     # mov rdx, [rax]
     result.extend([0x48, 0x8B, 0x10])
