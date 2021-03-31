@@ -248,7 +248,7 @@ def asm(*args):
         elif reg == 'rdi':
             return [0x5F]
         else:
-            assert False, "Unsupported argument to push: {!r}".format(reg)
+            assert False, "Unsupported argument to pop: {!r}".format(reg)
     
     assert False, "Unsupported assembly: {!r}".format(args)
 
