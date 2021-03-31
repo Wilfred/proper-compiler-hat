@@ -324,8 +324,15 @@ def compile_tagged_string_to_ptr():
     return zero_rax_tag_bits()
 
 
+def check_num_args(fn_name, expected_num, args):
+    msg = "{} requires {} argument{}, got {}".format(
+        fn_name, expected_num, "s" if expected_num else "", len(args)
+    )
+    assert len(args) == expected_num, msg
+
+
 def compile_allocate_intrinsic(args, context):
-    assert len(args) == 1, "__allocate requires one argument"
+    check_num_args("__allocate", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -361,7 +368,7 @@ def compile_allocate_intrinsic(args, context):
 
 
 def compile_read_intrinsic(args, context):
-    assert len(args) == 3, "__read requires 3 arguments"
+    check_num_args("__read", 3, args)
     
     result = []
 
@@ -400,7 +407,7 @@ def compile_read_intrinsic(args, context):
 
 
 def compile_pointer_to_string_intrinsic(args, context):
-    assert len(args) == 2, "__pointer-to-string requires 2 arguments"
+    check_num_args("__pointer-to-string", 2, args)
     
     result = []
 
@@ -431,7 +438,7 @@ def compile_pointer_to_string_intrinsic(args, context):
     return result
 
 def compile_char_at_intrinsic(args, context):
-    assert len(args) == 2, "__char-at takess two arguments"
+    check_num_args("__char-at", 2, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -544,7 +551,7 @@ def elf_header_instructions(funs_instrs, string_literals):
 
 
 def compile_print(args, context):
-    assert len(args) == 1, "print takes exactly one argument"
+    check_num_args("print", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -584,7 +591,7 @@ def compile_print(args, context):
 
 
 def compile_string_length(args, context):
-    assert len(args) == 1, "string-length takes exactly one argument"
+    check_num_args("string-length", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -602,7 +609,7 @@ def compile_string_length(args, context):
 
 
 def compile_error(args, context):
-    assert len(args) == 1, "error takes exactly one argument"
+    check_num_args("error", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -639,7 +646,7 @@ def compile_error(args, context):
 
 
 def compile_not(args, context):
-    assert len(args) == 1, "not takes exactly one argument"
+    check_num_args("not", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -760,7 +767,7 @@ def compile_while(args, context):
     WHILE_END:
       mov rax, TAGGED_ZERO
     """
-    assert len(args) == 2, "while takes two arguments"
+    check_num_args("while", 2, args)
 
     loop_header = []
     loop_header.extend(compile_expr(args[0], context))
@@ -797,7 +804,7 @@ def compile_while(args, context):
 
 
 def compile_if(args, context):
-    assert len(args) == 3, "if takes exactly three arguments"
+    check_num_args("if", 3, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1073,7 +1080,7 @@ def compile_bool_check(context):
 
 
 def compile_exit(args, context):
-    assert len(args) == 1, "exit takes exactly one argument"
+    check_num_args("exit", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1142,7 +1149,7 @@ def compile_file_exists(args, context):
 
 
 def compile_open(args, context):
-    assert len(args) == 1, "open takes exactly one argument"
+    check_num_args("open", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1361,7 +1368,7 @@ def compile_file_seek(args, context):
 
 
 def compile_file_pos(args, context):
-    assert len(args) == 1, "file-pos requires 1 argument"
+    check_num_args("file-pos", 1, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1420,7 +1427,7 @@ def compile_add(args, context):
 
 
 def compile_subtract(args, context):
-    assert len(args) == 2, "- takes exactly two arguments"
+    check_num_args("-", 2, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
@@ -1478,7 +1485,7 @@ def compile_multiply(args, context):
 
 def compile_intdiv(args, context):
     # TODO: handle division by zero.
-    assert len(args) == 2, "intdiv takes exactly two arguments"
+    check_num_args("intdiv", 2, args)
 
     result = []
     result.extend(compile_expr(args[0], context))
