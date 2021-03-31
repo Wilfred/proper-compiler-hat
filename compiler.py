@@ -223,6 +223,26 @@ def asm(*args):
 
         assert False, "Unsupported argument to mov: {!r}".format(dest)
 
+    if name == 'add':
+        assert len(args) == 3
+        
+        dest = args[1]
+        amount = args[2]
+
+        if isinstance(amount, int):
+            # TODO: list out registers by encoding value, rather than
+            # this verbose list of if statements.
+            if dest == 'rax':
+                return [0x48, 0x05] + int_32bit(amount)
+            elif dest == 'rdx':
+                return [0x48, 0x81, 0xC2] + int_32bit(amount)
+            elif dest == 'rsp':
+                return [0x48, 0x81, 0xC4] + int_32bit(amount)
+            elif dest == 'rsi':
+                return [0x48, 0x81, 0xC6] + int_32bit(amount)
+
+        assert False, "Unsupported arguments to add: {!r}".format(args)
+
     if name == 'syscall':
         return [0x0f, 0x05]
     if name == 'ret':
@@ -448,9 +468,7 @@ def compile_char_at_intrinsic(args, context):
 
     # The first eight bytes of the string data store the size, so get
     # a pointer to the actual string contents.
-    
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     result.extend(asm('push', 'rax'))
     
@@ -568,8 +586,7 @@ def compile_print(args, context):
     result.extend([0x48, 0x8B, 0x10])
 
     # After those bytes, we have the string data itself.
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
@@ -622,8 +639,7 @@ def compile_error(args, context):
     result.extend([0x48, 0x8B, 0x10])
 
     # Get the pointer to the string data in rsi.
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
     # mov rsi, rax
     result.extend([0x48, 0x89, 0xC6])
 
@@ -727,8 +743,7 @@ def compile_let(args, context):
     for expr in args[1:]:
         result.extend(compile_expr(expr, context))
 
-    # add rsp, 8 * len(vars)
-    result.extend([0x48, 0x81, 0xC4] + int_32bit(8 * len(vars)))
+    result.extend(asm('add', 'rsp', 8 * len(vars)))
 
     # Restore previous locals.
     context['locals'] = old_locals
@@ -1026,8 +1041,7 @@ def compile_die(message, context):
     result.extend([0x48, 0xbe, ['string_lit', addr]])
 
     # The first 8 bytes of a string store the length.
-    # add rsi, 8
-    result.extend([0x48, 0x81, 0xc6] + int_32bit(8))
+    result.extend(asm('add', 'rsi', 8))
 
     # mov rdx, len(literal)
     result.extend([0x48, 0xba] + int_64bit(len(message)))
@@ -1111,8 +1125,7 @@ def compile_file_exists(args, context):
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
@@ -1159,8 +1172,7 @@ def compile_open(args, context):
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
@@ -1200,8 +1212,7 @@ def compile_delete(args, context):
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
@@ -1269,8 +1280,7 @@ def compile_chmod(args, context):
     result.extend(compile_string_check(context))
 
     result.extend(compile_tagged_string_to_ptr())
-    # add rax, 8
-    result.extend([0x48, 0x05] + int_32bit(8))
+    result.extend(asm('add', 'rax', 8))
 
     result.extend(asm('push', 'rax'))
     
@@ -1634,8 +1644,7 @@ def compile_call(fun_name, args, context):
     # We may not know the offset of the function yet.
     result.extend([['fun_offset', fun_name]])
 
-    # add rsp, 8 * len(args)
-    result.extend([0x48, 0x81, 0xC4] + int_32bit(8 * len(args)))
+    result.extend(asm('add', 'rsp', 8 * len(args)))
 
     return result
 
