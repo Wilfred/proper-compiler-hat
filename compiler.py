@@ -430,6 +430,39 @@ def compile_pointer_to_string_intrinsic(args, context):
 
     return result
 
+def compile_char_at_intrinsic(args, context):
+    assert len(args) == 2, "__char-at takess two arguments"
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+    result.extend(compile_string_check(context))
+
+    result.extend(compile_tagged_string_to_ptr())
+
+    # The first eight bytes of the string data store the size, so get
+    # a pointer to the actual string contents.
+    
+    # add rax, 8
+    result.extend([0x48, 0x05] + int_32bit(8))
+
+    result.extend(asm('push', 'rax'))
+    
+    result.extend(compile_expr(args[1], context))
+    result.extend(compile_int_check(context))
+
+    # Add the string pointer to the offset.
+    result.extend(asm('pop', 'rsi'))
+    # add rax, rsi
+    result.extend([0x48, 0x01, 0xF0])
+    
+    # Read a byte. No bounds checking.
+    # movzx rax, BYTE [rax]
+    result.extend([0x48, 0x0F, 0xB6, 0x00])
+
+    result.extend(compile_to_tagged_int())
+    return result
+
+    
 
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
@@ -1545,6 +1578,8 @@ def compile_expr(subtree, context):
             return compile_read_intrinsic(args, context)
         elif fun_name == '__pointer-to-string':
             return compile_pointer_to_string_intrinsic(args, context)
+        elif fun_name == '__char-at':
+            return compile_char_at_intrinsic(args, context)
         else:
             return compile_call(fun_name, args, context)
     elif kind == INTEGER:
