@@ -1,12 +1,24 @@
 (defun main ()
-  (let (path "a.out")
-    (if (file-exists? path)
-        (delete! path)
+  ; TODO: command line arguments
+  (let (src-path "foo.wlp"
+        src ""
+        out-path "a.out")
+    ; Delete the existing file at `out-path` if present.
+    (if (file-exists? out-path)
+        (delete! out-path)
       0)
-    (let (f (open path))
+
+    ; Read the input program.
+    (if (file-exists? src-path)
+        (set! src (slurp src-path))
+      ; TODO: a runtime string concat would be really useful.
+      (error "foo.wlp does not exist"))
+
+    ; Compile to an executable that exits with the value given.
+    (let (f (open out-path))
       (write-elf-header! f)
-      (compile-exit! f 42)
-      (chmod! path 484))))
+      (compile-exit! f (parse-int src))
+      (chmod! out-path 484))))
 
 (defun compile-exit! (f exit-code)
   ; mov rdi, exit-code
@@ -20,6 +32,42 @@
   ; syscall
   (write! f 0x0f)
   (write! f 0x05))
+
+(defun and (x y)
+  (if x y false))
+
+(defun or (x y)
+  (if x true y))
+
+(defun <= (x y)
+  (or (< x y) (= x y)))
+
+(defun >= (x y)
+  (or (> x y) (= x y)))
+
+(defun slurp (path)
+  (let (f (open path)
+        file-size 0
+        ptr 0)
+    (file-seek-end! f)
+    (set! file-size (file-pos f))
+    (file-seek! f 0)
+    (set! ptr (__allocate (+ file-size 16)))
+    (__read f (+ 8 ptr) file-size)
+    (__pointer-to-string ptr file-size)))
+
+; Read a single integer literal from `s`. Returns zero once we hit a
+; non-digit character.
+(defun parse-int (s)
+  (let (i 0 result 0 keep-going true)
+    (while (and (< i (string-length s)) keep-going)
+      (do
+        (let (c (char-at s i) zero-ascii 48)
+          (if (and (>= c zero-ascii) (<= c (+ zero-ascii 9)))
+              (set! result (+ (* 10 result) (- c zero-ascii)))
+            (set! keep-going false)))
+        (set! i (+ i 1))))
+    result))
 
 ; Print `n` (an integer between 0 and 9) inclusive as an ASCII character.
 (defun print-digit! (f n)
@@ -44,6 +92,14 @@
       0)
     (print-digit! 1 ones))
   (print "\n"))
+
+(defun char-at (s i)
+  (if (> (+ i 1) (string-length s))
+    (error "char-at: out of bounds")
+    (if (< i 0)
+        (error "char-at: i cannot be negative")
+      0))
+  (__char-at s i))
 
 (defun power (x n)
   (if (< n 0)
