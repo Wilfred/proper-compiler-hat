@@ -20,7 +20,7 @@ for f in test/*.wlp; do
     "./$exe" > "$f.out" 2> "$f.outerr"
     
     exit=$?
-    rm "$exe"
+    rm -f "$exe"
 
     # Create an empty .stdout file if it doesn't exist.
     if [ ! -f "$f.stdout" ]; then
