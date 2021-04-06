@@ -17,7 +17,7 @@ Comments start with `;` and last to the end of the line.
 123456789
 ```
 
-Integers are 62-bit, and wrap around on overflow.
+Integers are 61-bit, and wrap around on overflow.
 
 ## Strings
 
