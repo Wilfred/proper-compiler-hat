@@ -1,3 +1,19 @@
+; Return the boolean AND of `x` and `y`. Does not short-ciruit.
+(defun and (x y)
+  (if x y false))
+
+; Return the boolean OR of `x` and `y`. Does not short-ciruit.
+(defun or (x y)
+  (if x true y))
+
+; Return true if `x` is less than or equal to `y`.
+(defun <= (x y)
+  (or (< x y) (= x y)))
+
+; Return true if `x` is greater than or equal to `y`.
+(defun >= (x y)
+  (or (> x y) (= x y)))
+
 ; Read `path` and return its contents as a string.
 (defun slurp (path)
   (let (f (open path)
@@ -19,3 +35,19 @@
         (error "char-at: i cannot be negative")
       0))
   (__char-at s i))
+
+; Calculate `x` to the power of `n`.
+(defun power (x n)
+  (if (< n 0)
+      (error "power: exponent may not be negative\n")
+    0)
+  (if (= n 0)
+      1
+    (* x (power x (- n 1)))))
+
+(defun shift-left (x n)
+  (* x (power 2 n)))
+
+(defun shift-right (x n)
+  (intdiv x (power 2 n)))
+

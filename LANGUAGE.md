@@ -84,6 +84,22 @@ arguments must be integers.
 
 Negates a boolean value.
 
+## `and` function
+
+```
+(and true false) ; false
+```
+
+Calculates boolean AND.
+
+## `or` function
+
+```
+(or true false) ; true
+```
+
+Calculates boolean OR.
+
 ## `if` primitive
 
 ```
@@ -173,27 +189,20 @@ are equal. Integers are compared by value, strings by reference.
 
 An integer and a string are never equal.
 
-## `<` function
+## `<`, `<=`, `>`, `>=` functions
 
 ```
 (< 1 2) ; true
 (< 2 2) ; false
 (< 3 2) ; false
+
+(> 1 2)  ; false
+(<= 1 2) ; true
+(>= 1 2) ; true
 ```
 
-Returns true if the first argument is strictly less than the
-second. Requires integer arguments.
-
-## `>` function
-
-```
-(> 1 2) ; false
-(> 2 2) ; false
-(> 3 2) ; true
-```
-
-Returns true if the first argument is strictly greater than the
-second. Requires integer arguments.
+Returns true if the first argument is less, greater or less/greater
+and equal to the second. Requires integer arguments.
 
 ## `intdiv` function
 
@@ -205,6 +214,24 @@ second. Requires integer arguments.
 
 Divides the first argument by the second. Crashes the program if the
 second argument is zero.
+
+## `power` function
+
+```
+(power 10 3) ; 1000
+```
+
+Calculates the first argument to the power of the second argument.
+
+## `shift-left`, `shift-right` functions
+
+```
+(shift-left 5 1)   ; 10
+(shift-right 20 1) ; 10
+```
+
+Calculates the first argument bit-shifted left or right by the second
+argument.
 
 ## `file-exists?` function
 

@@ -33,18 +33,6 @@
   (write! f 0x0f)
   (write! f 0x05))
 
-(defun and (x y)
-  (if x y false))
-
-(defun or (x y)
-  (if x true y))
-
-(defun <= (x y)
-  (or (< x y) (= x y)))
-
-(defun >= (x y)
-  (or (> x y) (= x y)))
-
 ; Read a single integer literal from `s`. Returns zero once we hit a
 ; non-digit character.
 (defun parse-int (s)
@@ -81,20 +69,6 @@
       0)
     (print-digit! 1 ones))
   (print "\n"))
-
-(defun power (x n)
-  (if (< n 0)
-      (error "power: exponent may not be negative\n")
-    0)
-  (if (= n 0)
-      1
-    (* x (power x (- n 1)))))
-
-(defun shift-left (x n)
-  (* x (power 2 n)))
-
-(defun shift-right (x n)
-  (intdiv x (power 2 n)))
 
 (defun zero-high-bits (x n)
   (shift-right (shift-left x n) n))
