@@ -1753,8 +1753,12 @@ def string_lit_offset(value, context):
     return offset
 
 
-def main(filename):
-    with open(filename) as f:
+def funs_from_path(path):
+    """Parse all the definitions in `path` and return a dict mapping
+    function names to bodies.
+
+    """
+    with open(path) as f:
         src = f.read()
 
     tokens = list(lex(src))
@@ -1772,6 +1776,11 @@ def main(filename):
         assert name_kind == SYMBOL, "defun requires a name"
         defs_by_name[name_value] = def_
 
+    return defs_by_name
+
+
+def main(filename):
+    defs_by_name = funs_from_path(filename)
     assert 'main' in defs_by_name, "A program must have a main function"
 
     context = {'string_literals': {}, 'data_offset': 0,
