@@ -625,42 +625,6 @@ def compile_string_length(args, context):
     return result
 
 
-def compile_error(args, context):
-    check_num_args("error", 1, args)
-
-    result = []
-    result.extend(compile_expr(args[0], context))
-
-    result.extend(compile_string_check(context))
-    result.extend(compile_tagged_string_to_ptr())
-
-    # The first 8 bytes of a string store the length, so copy it to rdi.
-    # mov rdx, [rax]
-    result.extend([0x48, 0x8B, 0x10])
-
-    # Get the pointer to the string data in rsi.
-    result.extend(asm('add', 'rax', 8))
-    # mov rsi, rax
-    result.extend([0x48, 0x89, 0xC6])
-
-    # 1 = write syscall
-    result.extend(asm('mov', 'rax', 1))
-        
-    # 2 = stderr
-    result.extend(asm('mov', 'rdi', 2))
-    
-    result.extend(asm('syscall'))
-
-    # 1 = exit code
-    result.extend(asm('mov', 'rdi', 1))
-
-    # 60 = exit
-    result.extend(asm('mov', 'rax', 60))
-    result.extend(asm('syscall'))
-
-    return result
-
-
 def compile_not(args, context):
     check_num_args("not", 1, args)
 
@@ -1587,8 +1551,6 @@ def compile_expr(subtree, context):
             return compile_file_seek(args, context)
         elif fun_name == 'file-pos':
             return compile_file_pos(args, context)
-        elif fun_name == 'error':
-            return compile_error(args, context)
         elif fun_name == '__allocate':
             return compile_allocate_intrinsic(args, context)
         elif fun_name == '__read':

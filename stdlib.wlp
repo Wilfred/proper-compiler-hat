@@ -1,3 +1,12 @@
+; Write `msg` to stderr and immediately terminate the program.
+(defun error (msg)
+  (let (i 0 stderr 2)
+    (while (< i (string-length msg))
+      (do
+        (write! stderr (char-at msg i))
+        (set! i (+ i 1))))
+  (exit 1)))
+
 ; Return the boolean AND of `x` and `y`. Does not short-ciruit.
 (defun and (x y)
   (if x y false))
