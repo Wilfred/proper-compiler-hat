@@ -1780,17 +1780,20 @@ def funs_from_path(path):
 
 
 def main(filename):
+    stdlib_defs = funs_from_path("stdlib.wlp")
     defs_by_name = funs_from_path(filename)
-    assert 'main' in defs_by_name, "A program must have a main function"
+    defs = dict(**stdlib_defs, **defs_by_name)
+
+    assert 'main' in defs, "A program must have a main function"
 
     context = {'string_literals': {}, 'data_offset': 0,
-               'fun_offsets': {}, 'global_funs': defs_by_name,
+               'fun_offsets': {}, 'global_funs': defs,
                'instr_bytes': 0}
 
     instrs_tmpl = []
     instrs_tmpl.extend(compile_start(context))
     
-    for ast in defs_by_name.values():
+    for ast in defs.values():
         instrs_tmpl.extend(compile_fun(ast, context))
 
     instrs = []

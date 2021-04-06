@@ -101,6 +101,15 @@ value of the first argument.
 
 Returns the length of a string as an integer.
 
+## `char-at` function
+
+```
+(char-at "abc" 0) ; 97
+```
+
+Returns the codepoint of the character in a string, at the position
+specified.
+
 ## `let` primitive
 
 ```
@@ -204,6 +213,14 @@ second argument is zero.
 ```
 
 Returns true if the file or directory specified exists.
+
+## `slurp` function
+
+```
+(slurp "/etc/passwd") ; "root:x:0:0:..."
+```
+
+Returns contents of the file at the path specified.
 
 ## `delete!` function
 

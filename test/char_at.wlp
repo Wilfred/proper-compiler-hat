@@ -1,10 +1,2 @@
-(defun char-at (s i)
-  (if (> (+ i 1) (string-length s))
-    (error "char-at: out of bounds")
-    (if (< i 0)
-        (error "char-at: i cannot be negative")
-      0))
-  (__char-at s i))
-
 (defun main ()
   (exit (char-at "ba" 1)))

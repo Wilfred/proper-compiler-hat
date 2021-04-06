@@ -1,0 +1,21 @@
+; Read `path` and return its contents as a string.
+(defun slurp (path)
+  (let (f (open path)
+        file-size 0
+        ptr 0)
+    (file-seek-end! f)
+    (set! file-size (file-pos f))
+    (file-seek! f 0)
+    (set! ptr (__allocate (+ file-size 16)))
+    (__read f (+ 8 ptr) file-size)
+    (__pointer-to-string ptr file-size)))
+
+; Read a single character from a string `s` at position `i`, and
+; return its value as an integer.
+(defun char-at (s i)
+  (if (> (+ i 1) (string-length s))
+    (error "char-at: out of bounds")
+    (if (< i 0)
+        (error "char-at: i cannot be negative")
+      0))
+  (__char-at s i))
