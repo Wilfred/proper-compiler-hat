@@ -2,7 +2,9 @@
 
 A small, crude lisp.
 
-## Comments
+## Syntax
+
+### Comments
 
 ```
 ; This is a comment.
@@ -10,7 +12,7 @@ A small, crude lisp.
 
 Comments start with `;` and last to the end of the line.
 
-## Integers
+### Integers
 
 ```
 1
@@ -19,7 +21,7 @@ Comments start with `;` and last to the end of the line.
 
 Integers are 61-bit, and wrap around on overflow.
 
-## Strings
+### Strings
 
 ```
 "foo"
@@ -28,79 +30,34 @@ Integers are 61-bit, and wrap around on overflow.
 
 The only backslash sequences supported are `\n`, `\"` and `\\`.
 
-## Booleans
+### Booleans
 
 ```
 true
 false
 ```
 
-## `exit` function
+<!-- end syntax -->
+
+## Primitive expressions
+
+Primitives are expressions that do not evaluate like functions.
+
+They may not evaluate all their arguments (e.g. `if`), they may evaluate arguments
+more than once (e.g. `while`), or they may not have a fixed number of
+arguments (e.g. `do`).
+
+### `defun` keyword
+
+`defun` defines a global function.
 
 ```
-(exit 1)
+(defun foo ()
+  (print "hello\n")
+  (print "world\n"))
 ```
 
-`exit` terminates the program with the specified error code.
-
-## `print` function
-
-```
-(print "hello world\n")
-```
-
-`print` writes its string argument to stdout.
-
-## `+` function
-
-```
-(+ 1 2) ; 3
-```
-
-`+` returns the sum of two integers.
-
-## `-` function
-
-```
-(- 10 2) ; 8
-```
-
-`-` subtracts the second argument from the first argument. Both
-arguments must be integers.
-
-## `*` function
-
-```
-(* 2 3) ; 6
-```
-
-`*` returns the product of two integers.
-
-## `not` function
-
-```
-(not false) ; true
-```
-
-Negates a boolean value.
-
-## `and` function
-
-```
-(and true false) ; false
-```
-
-Calculates boolean AND.
-
-## `or` function
-
-```
-(or true false) ; true
-```
-
-Calculates boolean OR.
-
-## `if` primitive
+### `if` primitive
 
 ```
 (if true "true value" "ignored value") ; true value
@@ -109,24 +66,7 @@ Calculates boolean OR.
 Evaluates the second or the third argument depending on the boolean
 value of the first argument.
 
-## `string-length` function
-
-```
-(string-length "foo") ; 3
-```
-
-Returns the length of a string as an integer.
-
-## `char-at` function
-
-```
-(char-at "abc" 0) ; 97
-```
-
-Returns the codepoint of the character in a string, at the position
-specified.
-
-## `let` primitive
+### `let` primitive
 
 ```
 (let (y "bye world\n"
@@ -138,7 +78,7 @@ specified.
 Assigns local variables to the values specified, then evaluates the
 last expression.
 
-## `set!` primitive
+### `set!` primitive
 
 ```
 (let (x 1)
@@ -149,7 +89,7 @@ last expression.
 Updates a local variable to a new value. The variable must be already
 bound with `let`.
 
-## `while` primitive
+### `while` primitive
 
 ```
 (while true
@@ -162,7 +102,7 @@ argument, then repeat.
 Currently returns `0` but this is an implementation detail that will
 change.
 
-## `do` primitive
+### `do` primitive
 
 ```
 (do
@@ -171,6 +111,150 @@ change.
 ```
 
 Evaluates its arguments in order, and returns the last value.
+
+<!-- end primitives -->
+
+## I/O functions
+
+### `print` function
+
+```
+(print "hello world\n")
+```
+
+`print` writes its string argument to stdout.
+
+### `exit` function
+
+```
+(exit 1)
+```
+
+`exit` terminates the program with the specified error code.
+
+<!-- end I/O -->
+
+## Integer functions
+
+### `+` function
+
+```
+(+ 1 2) ; 3
+```
+
+`+` returns the sum of two integers.
+
+### `-` function
+
+```
+(- 10 2) ; 8
+```
+
+`-` subtracts the second argument from the first argument. Both
+arguments must be integers.
+
+### `*` function
+
+```
+(* 2 3) ; 6
+```
+
+`*` returns the product of two integers.
+
+### `<`, `<=`, `>`, `>=` functions
+
+```
+(< 1 2) ; true
+(< 2 2) ; false
+(< 3 2) ; false
+
+(> 1 2)  ; false
+(<= 1 2) ; true
+(>= 1 2) ; true
+```
+
+Returns true if the first argument is less, greater or less/greater
+and equal to the second. Requires integer arguments.
+
+### `intdiv` function
+
+```
+(intdiv 6 2) ; 3
+(intdiv 7 2) ; 3
+(intdiv 8 2) ; 4
+```
+
+Divides the first argument by the second. Crashes the program if the
+second argument is zero.
+
+### `power` function
+
+```
+(power 10 3) ; 1000
+```
+
+Calculates the first argument to the power of the second argument.
+
+### `shift-left`, `shift-right` functions
+
+```
+(shift-left 5 1)   ; 10
+(shift-right 20 1) ; 10
+```
+
+Calculates the first argument bit-shifted left or right by the second
+argument.
+
+<!-- end integer functions -->
+
+## Boolean functions
+
+### `not` function
+
+```
+(not false) ; true
+```
+
+Negates a boolean value.
+
+### `and` function
+
+```
+(and true false) ; false
+```
+
+Calculates boolean AND.
+
+### `or` function
+
+```
+(or true false) ; true
+```
+
+Calculates boolean OR.
+
+<!-- end boolean functions -->
+
+## String functions
+
+### `string-length` function
+
+```
+(string-length "foo") ; 3
+```
+
+Returns the length of a string as an integer.
+
+### `char-at` function
+
+```
+(char-at "abc" 0) ; 97
+```
+
+Returns the codepoint of the character in a string, at the position
+specified.
+
+<!-- end string functions -->
 
 ## `=` function
 
@@ -189,51 +273,9 @@ are equal. Integers are compared by value, strings by reference.
 
 An integer and a string are never equal.
 
-## `<`, `<=`, `>`, `>=` functions
+## File functions
 
-```
-(< 1 2) ; true
-(< 2 2) ; false
-(< 3 2) ; false
-
-(> 1 2)  ; false
-(<= 1 2) ; true
-(>= 1 2) ; true
-```
-
-Returns true if the first argument is less, greater or less/greater
-and equal to the second. Requires integer arguments.
-
-## `intdiv` function
-
-```
-(intdiv 6 2) ; 3
-(intdiv 7 2) ; 3
-(intdiv 8 2) ; 4
-```
-
-Divides the first argument by the second. Crashes the program if the
-second argument is zero.
-
-## `power` function
-
-```
-(power 10 3) ; 1000
-```
-
-Calculates the first argument to the power of the second argument.
-
-## `shift-left`, `shift-right` functions
-
-```
-(shift-left 5 1)   ; 10
-(shift-right 20 1) ; 10
-```
-
-Calculates the first argument bit-shifted left or right by the second
-argument.
-
-## `file-exists?` function
+### `file-exists?` function
 
 ```
 (file-exists? "no-such-file.txt") ; false
@@ -241,7 +283,7 @@ argument.
 
 Returns true if the file or directory specified exists.
 
-## `slurp` function
+### `slurp` function
 
 ```
 (slurp "/etc/passwd") ; "root:x:0:0:..."
@@ -249,7 +291,7 @@ Returns true if the file or directory specified exists.
 
 Returns contents of the file at the path specified.
 
-## `delete!` function
+### `delete!` function
 
 ```
 (delete! "unwanted_file_path.txt")
@@ -258,7 +300,7 @@ Returns contents of the file at the path specified.
 Deletes the file at the path specified.
 
 
-## `open` function
+### `open` function
 
 ```
 (open "/tmp/foo") ; 123
@@ -267,7 +309,7 @@ Deletes the file at the path specified.
 Opens the path specified for reading and writing. Returns the file
 descriptor.
 
-## `write!` function
+### `write!` function
 
 ```
 ; Writes 'a' to stdout.
@@ -276,7 +318,7 @@ descriptor.
 
 Writes a single byte to the file descriptor specified.
 
-## `chmod!` function
+### `chmod!` function
 
 ```
 ; Makes a.out executable with permissions 0o744.
@@ -285,7 +327,7 @@ Writes a single byte to the file descriptor specified.
 
 Set permissions on the file at the path specified.
 
-## `file-pos` function
+### `file-pos` function
 
 ```
 (let (f (open "existing.txt"))
@@ -294,7 +336,7 @@ Set permissions on the file at the path specified.
 
 Returns the current offset in the file descriptor given.
 
-## `file-seek!` function
+### `file-seek!` function
 
 ```
 (let (f (open "existing.txt"))
@@ -303,7 +345,7 @@ Returns the current offset in the file descriptor given.
 
 Sets the current offset in the file descriptor given.
 
-## `file-seek-end!` function
+### `file-seek-end!` function
 
 ```
 (let (f (open "existing.txt"))
@@ -311,6 +353,8 @@ Sets the current offset in the file descriptor given.
 ```
 
 Seek to the end of file descriptor given, and return the offset.
+
+<!-- end boolean functions -->
 
 ## `error` function
 
@@ -320,13 +364,3 @@ Seek to the end of file descriptor given, and return the offset.
 
 Writes the string to stderr, then terminates the program with exit
 code 1.
-
-## `defun` keyword
-
-`defun` defines a global function.
-
-```
-(defun foo ()
-  (print "hello\n")
-  (print "world\n"))
-```
