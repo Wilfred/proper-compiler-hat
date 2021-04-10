@@ -56,7 +56,7 @@ def lex(src):
             if token:
                 yield token
                 token = None
-            yield c
+            yield (c, i)
             i += 1
         elif c in [' ', '\n', ';']:
             if token:
@@ -69,9 +69,10 @@ def lex(src):
             i += 1
         elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=', '*', '_']:
             if token is None:
-                token = c
+                token = (c, i)
             else:
-                token = token + c
+                prev_token, prev_i = token
+                token = (prev_token + c, prev_i)
             i += 1
         elif c == '"':
             end_i = i + 1
@@ -82,7 +83,7 @@ def lex(src):
                     end_i += 1
 
             assert src[end_i] == '"'
-            yield src[i:end_i + 1]
+            yield (src[i:end_i + 1], i)
             i = end_i + 1
         else:
             assert False, "Could not lex: {!r}".format(src[i:])
@@ -101,7 +102,7 @@ def parse_from(tokens, i):
     (3, [("SYMBOL", "foo")])
 
     """
-    token = tokens[i]
+    token, pos = tokens[i]
 
     if token == '(':
         i += 1
@@ -109,13 +110,14 @@ def parse_from(tokens, i):
         while True:
             if i >= len(tokens):
                 assert False, "Missing closing paren )"
-            if tokens[i] == ')':
+            token, pos = tokens[i]
+            if token == ')':
                 return (i + 1, (LIST, result))
             
             i, subtree = parse_from(tokens, i)
             result.append(subtree)
     elif token == ')':
-        assert False, "Unbalanced parens: {}".format(tokens[i:])
+        assert False, "Unbalanced {} at {}".format(token, pos)
     elif token == 'true':
         return (i + 1, (BOOLEAN, True))
     elif token == 'false':
