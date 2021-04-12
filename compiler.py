@@ -7,6 +7,7 @@ import string
 
 STRING = "STRING"
 INTEGER = "INTEGER"
+NIL = "NIL"
 BOOLEAN = "BOOLEAN"
 SYMBOL = "SYMBOL"
 LIST = "LIST"
@@ -118,6 +119,8 @@ def parse_from(tokens, i):
             result.append(subtree)
     elif token == ')':
         assert False, "Unbalanced {} at {}".format(token, pos)
+    elif token == 'nil':
+        return (i + 1, (NIL, True))
     elif token == 'true':
         return (i + 1, (BOOLEAN, True))
     elif token == 'false':
@@ -284,7 +287,12 @@ TAG_BITS = 3
 
 INTEGER_TAG_BITS = 0b000
 STRING_TAG_BITS = 0b100
+NIL_TAG_BITS = 0b010
+CONS_TAG_BITS = 0b011
 BOOLEAN_TAG_BITS = 0b110
+
+NIL_TAG_BYTE = (NIL_TAG_BITS << (8 - TAG_BITS))
+NIL_TAG = NIL_TAG_BYTE << (8 * 7)
 
 BOOLEAN_TAG_BYTE = (BOOLEAN_TAG_BITS << (8 - TAG_BITS))
 BOOLEAN_TAG = BOOLEAN_TAG_BYTE << (8 * 7)
@@ -970,6 +978,10 @@ def compile_bool_literal(value):
         return asm('mov', 'rax', BOOLEAN_TAG)
 
 
+def compile_nil_literal():
+    return asm('mov', 'rax', NIL_TAG)
+
+
 def compile_int_check(context):
     """Throw a runtime error if the value in rax is not an integer.
     Does not modify rax.
@@ -1567,6 +1579,8 @@ def compile_expr(subtree, context):
         return compile_int_literal(value)
     elif kind == STRING:
         return compile_string_literal(value, context)
+    elif kind == NIL:
+        return compile_nil_literal()
     elif kind == BOOLEAN:
         return compile_bool_literal(value)
     elif kind == SYMBOL:
