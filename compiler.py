@@ -786,8 +786,8 @@ def compile_while(args, context):
     # jmp WHILE_START
     result.extend([0xe9] + int_32bit(-1 * result_bytes))
 
-    # We need to return a legal value, so arbitrarily choose 0.
-    result.extend(compile_int_literal(0))
+    # We need to return a legal value, so arbitrarily choose nil.
+    result.extend(compile_nil_literal())
 
     return result
 
@@ -1202,8 +1202,8 @@ def compile_delete(args, context):
 
     # TODO: error if we couldn't delete it.
 
-    # We need to return a legal value, so arbitrarily choose 0.
-    result.extend(compile_int_literal(0))
+    # We need to return a legal value, so arbitrarily choose nil.
+    result.extend(compile_nil_literal())
 
     return result
 
@@ -1280,8 +1280,8 @@ def compile_chmod(args, context):
 
     result.extend(asm('syscall'))
 
-    # Arbitrarily return zero since we don't have null yet.
-    result.extend(compile_int_literal(0))
+    # We need to return a legal value, so arbitrarily choose nil.
+    result.extend(compile_nil_literal())
 
     return result
 
