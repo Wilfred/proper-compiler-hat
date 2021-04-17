@@ -335,8 +335,7 @@ def compile_from_tagged_int():
 
 
 def compile_ptr_to_tagged_string():
-    # Compile a pointer to a string object (in rodata) to a tagged
-    # pointer.
+    # Compile a pointer to a string object to a tagged pointer.
 
     result = []
 
