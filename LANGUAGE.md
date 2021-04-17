@@ -235,6 +235,17 @@ Calculates boolean OR.
 
 <!-- end boolean functions -->
 
+## List functions
+
+### `cons` function
+
+```
+(cons 2 nil)
+```
+
+Returns a new list with the first argument appended to the second
+argument.
+
 ## String functions
 
 ### `string-length` function

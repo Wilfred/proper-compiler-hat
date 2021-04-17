@@ -1,0 +1,2 @@
+(defun main ()
+  (cons 1 nil))

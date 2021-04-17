@@ -294,12 +294,14 @@ BOOLEAN_TAG_BITS = 0b110
 NIL_TAG_BYTE = (NIL_TAG_BITS << (8 - TAG_BITS))
 NIL_TAG = NIL_TAG_BYTE << (8 * 7)
 
+CONS_TAG_BYTE = (CONS_TAG_BITS << (8 - TAG_BITS))
+CONS_TAG = CONS_TAG_BYTE << (8 * 7)
+
 BOOLEAN_TAG_BYTE = (BOOLEAN_TAG_BITS << (8 - TAG_BITS))
 BOOLEAN_TAG = BOOLEAN_TAG_BYTE << (8 * 7)
 
 STRING_TAG_BYTE = (STRING_TAG_BITS << (8 - TAG_BITS))
 STRING_TAG = STRING_TAG_BYTE << (8 * 7)
-
 
 
 def zero_rax_tag_bits():
@@ -434,6 +436,41 @@ def compile_read_intrinsic(args, context):
 
     return result
 
+
+def compile_cons(args, context):
+    check_num_args("cons", 2, args)
+
+    result = []
+
+    # First argument: first item of the cons cell.
+    result.extend(compile_expr(args[0], context))
+    result.extend(asm('push', 'rax'))
+
+    # Second argument: second item of the cons cell.
+    result.extend(compile_expr(args[1], context))
+    result.extend(asm('push', 'rax'))
+
+    # TODO: check the second arg is nil or a cons cell.
+
+    # Allocate two words for the cons cell.
+    result.extend(compile_allocate_intrinsic([(INTEGER, 8 * 2)], context))
+
+    # Write the second item into the cons cell.
+    result.extend(asm('pop', 'rsi'))
+    # mov [rax+8], rsi
+    result.extend([0x48, 0x89, 0x70, 0x08])
+
+    # Write the first item into the cons cell.
+    result.extend(asm('pop', 'rsi'))
+    # mov [rax], rsi
+    result.extend([0x48, 0x89, 0x30])
+
+    # Set the cons cell tag bits.
+    result.extend(asm('mov', 'rdi', CONS_TAG))
+    # add rax, rdi
+    result.extend([0x48, 0x01, 0xf8])
+
+    return result
 
 def compile_pointer_to_string_intrinsic(args, context):
     check_num_args("__pointer-to-string", 2, args)
@@ -1542,6 +1579,8 @@ def compile_expr(subtree, context):
             return compile_while(args, context)
         elif fun_name == 'do':
             return compile_do(args, context)
+        elif fun_name == 'cons':
+            return compile_cons(args, context)
         elif fun_name == '<':
             return compile_less_than(args, context)
         elif fun_name == '>':
