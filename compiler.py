@@ -23,7 +23,7 @@ def unescape(string_lit):
 
     """
     string_lit = string_lit.strip('"')
-    
+
     res = ""
     i = 0
     while i < len(string_lit):
@@ -53,22 +53,26 @@ def lex(src):
     i = 0
     while i < len(src):
         c = src[i]
-        if c in ['(', ')']:
+        if c in ["(", ")"]:
             if token:
                 yield token
                 token = None
             yield (c, i)
             i += 1
-        elif c in [' ', '\n', ';']:
+        elif c in [" ", "\n", ";"]:
             if token:
                 yield token
                 token = None
-            if c == ';':
-                while i < len(src) and src[i] != '\n':
+            if c == ";":
+                while i < len(src) and src[i] != "\n":
                     i += 1
-                
+
             i += 1
-        elif c in string.ascii_letters or c in string.digits or c in ['!', '?', '+', '-', '<', '>', '=', '*', '_']:
+        elif (
+            c in string.ascii_letters
+            or c in string.digits
+            or c in ["!", "?", "+", "-", "<", ">", "=", "*", "_"]
+        ):
             if token is None:
                 token = (c, i)
             else:
@@ -78,13 +82,13 @@ def lex(src):
         elif c == '"':
             end_i = i + 1
             while end_i < len(src) and src[end_i] != '"':
-                if src[end_i] == '\\':
+                if src[end_i] == "\\":
                     end_i += 2
                 else:
                     end_i += 1
 
             assert src[end_i] == '"'
-            yield (src[i:end_i + 1], i)
+            yield (src[i : end_i + 1], i)
             i = end_i + 1
         else:
             assert False, "Could not lex: {!r}".format(src[i:])
@@ -105,25 +109,25 @@ def parse_from(tokens, i):
     """
     token, pos = tokens[i]
 
-    if token == '(':
+    if token == "(":
         i += 1
         result = []
         while True:
             if i >= len(tokens):
                 assert False, "Missing closing paren )"
             token, pos = tokens[i]
-            if token == ')':
+            if token == ")":
                 return (i + 1, (LIST, result))
-            
+
             i, subtree = parse_from(tokens, i)
             result.append(subtree)
-    elif token == ')':
+    elif token == ")":
         assert False, "Unbalanced {} at {}".format(token, pos)
-    elif token == 'nil':
+    elif token == "nil":
         return (i + 1, (NIL, True))
-    elif token == 'true':
+    elif token == "true":
         return (i + 1, (BOOLEAN, True))
-    elif token == 'false':
+    elif token == "false":
         return (i + 1, (BOOLEAN, False))
     elif token.startswith('"'):
         # string literal
@@ -134,6 +138,7 @@ def parse_from(tokens, i):
         # symbol
         return (i + 1, (SYMBOL, token))
 
+
 def parse_int(token):
     """Convert a token of a integer literal to its integer value.
 
@@ -143,34 +148,30 @@ def parse_int(token):
     10
 
     """
-    if token.startswith('0x'):
+    if token.startswith("0x"):
         return int(token, base=16)
-    elif token.startswith('0o'):
+    elif token.startswith("0o"):
         return int(token, base=8)
     else:
         return int(token)
 
 
 def parse(tokens):
-    """Return a list of expressions from parsing this list of tokens.
-
-    """
+    """Return a list of expressions from parsing this list of tokens."""
     result = []
 
     i = 0
     while i < len(tokens):
         i, subtree = parse_from(tokens, i)
         result.append(subtree)
-    
+
     return result
 
 
 def int_64bit(num):
-    """Return `num` as a list of bytes of its 64-bit representation.
-
-    """
+    """Return `num` as a list of bytes of its 64-bit representation."""
     assert num >= 0, "Signed numbers are not supported"
-    return list(num.to_bytes(8, 'little'))
+    return list(num.to_bytes(8, "little"))
 
 
 def signed_int_64bit(num):
@@ -178,14 +179,12 @@ def signed_int_64bit(num):
     representation.
 
     """
-    return list(num.to_bytes(8, 'little', signed=True))
+    return list(num.to_bytes(8, "little", signed=True))
 
 
 def int_32bit(num):
-    """Return `num` as a list of bytes of its 32-bit representation.
-
-    """
-    return list(num.to_bytes(4, 'little', signed=True))
+    """Return `num` as a list of bytes of its 32-bit representation."""
+    return list(num.to_bytes(4, "little", signed=True))
 
 
 def asm(*args):
@@ -200,55 +199,55 @@ def asm(*args):
     assert len(args) > 0
 
     name = args[0]
-    if name == 'mov':
+    if name == "mov":
         assert len(args) == 3
         dest = args[1]
         source = args[2]
 
-        if source == 'rsi':
+        if source == "rsi":
             pass
 
         if isinstance(source, int):
             # TODO: list out registers by encoding value, rather than
             # this verbose list of if statements.
-            if dest == 'rax':
+            if dest == "rax":
                 return [0x48, 0xB8] + int_64bit(source)
-            elif dest == 'rdx':
+            elif dest == "rdx":
                 return [0x48, 0xBA] + int_64bit(source)
-            elif dest == 'rsi':
+            elif dest == "rsi":
                 return [0x48, 0xBE] + int_64bit(source)
-            elif dest == 'rdi':
+            elif dest == "rdi":
                 return [0x48, 0xBF] + int_64bit(source)
-            elif dest == 'r8':
+            elif dest == "r8":
                 return [0x49, 0xB8] + int_64bit(source)
-            elif dest == 'r9':
+            elif dest == "r9":
                 return [0x49, 0xB9] + int_64bit(source)
-            elif dest == 'r10':
+            elif dest == "r10":
                 return [0x49, 0xBA] + int_64bit(source)
 
         assert False, "Unsupported argument to mov: {!r}".format(dest)
 
-    if name == 'add':
+    if name == "add":
         assert len(args) == 3
-        
+
         dest = args[1]
         amount = args[2]
 
         if isinstance(amount, int):
             # TODO: list out registers by encoding value, rather than
             # this verbose list of if statements.
-            if dest == 'rax':
+            if dest == "rax":
                 return [0x48, 0x05] + int_32bit(amount)
-            elif dest == 'rdx':
+            elif dest == "rdx":
                 return [0x48, 0x81, 0xC2] + int_32bit(amount)
-            elif dest == 'rsp':
+            elif dest == "rsp":
                 return [0x48, 0x81, 0xC4] + int_32bit(amount)
-            elif dest == 'rsi':
+            elif dest == "rsi":
                 return [0x48, 0x81, 0xC6] + int_32bit(amount)
 
         assert False, "Unsupported arguments to add: {!r}".format(args)
 
-    if name == 'cmp':
+    if name == "cmp":
         assert len(args) == 3
 
         dest = args[1]
@@ -257,40 +256,40 @@ def asm(*args):
         if isinstance(value, int):
             # TODO: list out registers by encoding value, rather than
             # this verbose list of if statements.
-            if dest == 'rax':
-                return [0x48, 0x3d] + int_32bit(value)
-            elif dest == 'rdi':
+            if dest == "rax":
+                return [0x48, 0x3D] + int_32bit(value)
+            elif dest == "rdi":
                 return [0x48, 0x81, 0xFF] + int_32bit(value)
 
         assert False, "Unsupported arguments to cmp: {!r}".format(args)
 
-    if name == 'syscall':
-        return [0x0f, 0x05]
-    if name == 'ret':
+    if name == "syscall":
+        return [0x0F, 0x05]
+    if name == "ret":
         return [0xC3]
-    if name == 'push':
+    if name == "push":
         assert len(args) == 2
         reg = args[1]
-        if reg == 'rax':
+        if reg == "rax":
             return [0x50]
-        elif reg == 'rbp':
+        elif reg == "rbp":
             return [0x55]
         else:
             assert False, "Unsupported argument to push: {!r}".format(reg)
-    if name == 'pop':
+    if name == "pop":
         assert len(args) == 2
         reg = args[1]
-        if reg == 'rax':
+        if reg == "rax":
             return [0x58]
-        elif reg == 'rbp':
+        elif reg == "rbp":
             return [0x5D]
-        elif reg == 'rsi':
+        elif reg == "rsi":
             return [0x5E]
-        elif reg == 'rdi':
+        elif reg == "rdi":
             return [0x5F]
         else:
             assert False, "Unsupported argument to pop: {!r}".format(reg)
-    
+
     assert False, "Unsupported assembly: {!r}".format(args)
 
 
@@ -307,23 +306,21 @@ NIL_TAG_BITS = 0b010
 CONS_TAG_BITS = 0b011
 BOOLEAN_TAG_BITS = 0b110
 
-NIL_TAG_BYTE = (NIL_TAG_BITS << (8 - TAG_BITS))
+NIL_TAG_BYTE = NIL_TAG_BITS << (8 - TAG_BITS)
 NIL_TAG = NIL_TAG_BYTE << (8 * 7)
 
-CONS_TAG_BYTE = (CONS_TAG_BITS << (8 - TAG_BITS))
+CONS_TAG_BYTE = CONS_TAG_BITS << (8 - TAG_BITS)
 CONS_TAG = CONS_TAG_BYTE << (8 * 7)
 
-BOOLEAN_TAG_BYTE = (BOOLEAN_TAG_BITS << (8 - TAG_BITS))
+BOOLEAN_TAG_BYTE = BOOLEAN_TAG_BITS << (8 - TAG_BITS)
 BOOLEAN_TAG = BOOLEAN_TAG_BYTE << (8 * 7)
 
-STRING_TAG_BYTE = (STRING_TAG_BITS << (8 - TAG_BITS))
+STRING_TAG_BYTE = STRING_TAG_BITS << (8 - TAG_BITS)
 STRING_TAG = STRING_TAG_BYTE << (8 * 7)
 
 
 def zero_rax_tag_bits():
-    """Set the tag bits to zero in register rax.
-
-    """
+    """Set the tag bits to zero in register rax."""
     result = []
     # shl rax, TAG_BITS
     result.extend([0x48, 0xC1, 0xE0, TAG_BITS])
@@ -360,9 +357,9 @@ def compile_ptr_to_tagged_string():
     # TODO: how can we be sure that real string pointers don't have
     # the tag bits set?
 
-    result.extend(asm('mov', 'rdi', STRING_TAG))
+    result.extend(asm("mov", "rdi", STRING_TAG))
     # add rax, rdi
-    result.extend([0x48, 0x01, 0xf8])
+    result.extend([0x48, 0x01, 0xF8])
 
     return result
 
@@ -384,39 +381,39 @@ def compile_allocate_intrinsic(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_int_check(context))
-    
+
     # mov rsi, rax (num bytes in rsi, from argument)
     result.extend([0x48, 0x89, 0xC6])
 
     # call mmap, which is syscall 9
-    result.extend(asm('mov', 'rax', 9))
+    result.extend(asm("mov", "rax", 9))
 
     # Address in rdi, which is 0.
-    result.extend(asm('mov', 'rdi', 0))
+    result.extend(asm("mov", "rdi", 0))
 
     # rdx holds $protect
     read_write = 0x1 | 0x2
-    result.extend([0x48, 0xba] + int_64bit(read_write))
+    result.extend([0x48, 0xBA] + int_64bit(read_write))
 
     # r10 holds $flags
     map_anonymous = 0x20
     map_private = 0x02
-    result.extend(asm('mov', 'r10', map_anonymous | map_private))
+    result.extend(asm("mov", "r10", map_anonymous | map_private))
 
     # mov r8, -1 (file descriptor)
-    result.extend([0x49, 0xb8] + signed_int_64bit(-1))
+    result.extend([0x49, 0xB8] + signed_int_64bit(-1))
 
     # mov r9, $offset
-    result.extend(asm('mov', 'r9', 0))
+    result.extend(asm("mov", "r9", 0))
 
-    result.extend(asm('syscall'))
+    result.extend(asm("syscall"))
 
     return result
 
 
 def compile_read_intrinsic(args, context):
     check_num_args("__read", 3, args)
-    
+
     result = []
 
     # First argument: file descriptor
@@ -424,12 +421,12 @@ def compile_read_intrinsic(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Second argument: raw pointer. No runtime tag checks.
     result.extend(compile_expr(args[1], context))
 
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Third argument: number of bytes.
     result.extend(compile_expr(args[2], context))
@@ -439,13 +436,13 @@ def compile_read_intrinsic(args, context):
     # mov rdx, rax
     result.extend([0x48, 0x89, 0xC2])
 
-    result.extend(asm('pop', 'rsi'))
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rsi"))
+    result.extend(asm("pop", "rdi"))
 
     # 0 represents the read syscall.
-    result.extend(asm('mov', 'rax', 0))
-    
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rax", 0))
+
+    result.extend(asm("syscall"))
 
     # Defensively return 0.
     result.extend(compile_int_literal(0))
@@ -460,42 +457,43 @@ def compile_cons(args, context):
 
     # First argument: first item of the cons cell.
     result.extend(compile_expr(args[0], context))
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Second argument: second item of the cons cell.
     result.extend(compile_expr(args[1], context))
     result.extend(compile_list_check(context))
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Allocate two words for the cons cell.
     result.extend(compile_allocate_intrinsic([(INTEGER, 8 * 2)], context))
 
     # Write the second item into the cons cell.
-    result.extend(asm('pop', 'rsi'))
+    result.extend(asm("pop", "rsi"))
     # mov [rax+8], rsi
     result.extend([0x48, 0x89, 0x70, 0x08])
 
     # Write the first item into the cons cell.
-    result.extend(asm('pop', 'rsi'))
+    result.extend(asm("pop", "rsi"))
     # mov [rax], rsi
     result.extend([0x48, 0x89, 0x30])
 
     # Set the cons cell tag bits.
-    result.extend(asm('mov', 'rdi', CONS_TAG))
+    result.extend(asm("mov", "rdi", CONS_TAG))
     # add rax, rdi
-    result.extend([0x48, 0x01, 0xf8])
+    result.extend([0x48, 0x01, 0xF8])
 
     return result
 
+
 def compile_pointer_to_string_intrinsic(args, context):
     check_num_args("__pointer-to-string", 2, args)
-    
+
     result = []
 
     # First argument: pointer that string has been written into.
     result.extend(compile_expr(args[0], context))
 
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Second argument is string length.
     result.extend(compile_expr(args[1], context))
@@ -504,7 +502,7 @@ def compile_pointer_to_string_intrinsic(args, context):
 
     # Write the string length to the first 64-bits of the memory that the
     # pointer points to.
-    result.extend(asm('pop', 'rsi'))
+    result.extend(asm("pop", "rsi"))
     # mov [rsi], rax
     result.extend([0x48, 0x89, 0x06])
 
@@ -512,11 +510,12 @@ def compile_pointer_to_string_intrinsic(args, context):
     result.extend([0x48, 0x89, 0xF0])
 
     # mov rdi, STRING_TAG
-    result.extend([0x48, 0xbf] + int_64bit(STRING_TAG))
+    result.extend([0x48, 0xBF] + int_64bit(STRING_TAG))
     # add rax, rdi
-    result.extend([0x48, 0x01, 0xf8])
+    result.extend([0x48, 0x01, 0xF8])
 
     return result
+
 
 def compile_char_at_intrinsic(args, context):
     check_num_args("__char-at", 2, args)
@@ -529,18 +528,18 @@ def compile_char_at_intrinsic(args, context):
 
     # The first eight bytes of the string data store the size, so get
     # a pointer to the actual string contents.
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
-    result.extend(asm('push', 'rax'))
-    
+    result.extend(asm("push", "rax"))
+
     result.extend(compile_expr(args[1], context))
     result.extend(compile_int_check(context))
 
     # Add the string pointer to the offset.
-    result.extend(asm('pop', 'rsi'))
+    result.extend(asm("pop", "rsi"))
     # add rax, rsi
     result.extend([0x48, 0x01, 0xF0])
-    
+
     # Read a byte. No bounds checking.
     # movzx rax, BYTE [rax]
     result.extend([0x48, 0x0F, 0xB6, 0x00])
@@ -548,7 +547,6 @@ def compile_char_at_intrinsic(args, context):
     result.extend(compile_to_tagged_int())
     return result
 
-    
 
 def num_bytes(byte_tmpl):
     """Given a list of raw bytes and template strings, calculate the total number
@@ -566,13 +564,13 @@ def num_bytes(byte_tmpl):
             total += 1
         elif isinstance(b, list) and b:
             tmpl_key = b[0]
-            if tmpl_key == 'string_lit':
+            if tmpl_key == "string_lit":
                 total += 8
-            elif tmpl_key == 'fun_offset':
+            elif tmpl_key == "fun_offset":
                 total += 4
             else:
                 assert False, "tmpl key: {!r}".format(tmpl_key)
-        elif b in ('prog_entry', 'prog_length'):
+        elif b in ("prog_entry", "prog_length"):
             total += 8
         else:
             assert False, "tmpl: {!r}".format(b)
@@ -583,6 +581,7 @@ def num_bytes(byte_tmpl):
 def elf_header_instructions(funs_instrs, string_literals):
     # The raw bytes of the ELF header. We use strings
     # for placeholder values computed later.
+    # fmt: off
     header_tmpl = [
         0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00, # ELF magic number
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # ELF reserved
@@ -611,6 +610,7 @@ def elf_header_instructions(funs_instrs, string_literals):
         'prog_length', # p_memsz, the file size (8 bytes)
         0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, # p_align
     ]
+    # fmt: on
 
     rodata_size = sum(num_bytes_string_lit(lit) for lit in string_literals)
     prog_length = num_bytes(header_tmpl) + len(funs_instrs) + rodata_size
@@ -619,9 +619,9 @@ def elf_header_instructions(funs_instrs, string_literals):
     for byte in header_tmpl:
         if isinstance(byte, int):
             result.append(byte)
-        elif byte == 'prog_length':
+        elif byte == "prog_length":
             result.extend(int_64bit(prog_length))
-        elif byte == 'prog_entry':
+        elif byte == "prog_entry":
             result.extend(int_64bit(ENTRY_POINT + num_bytes(header_tmpl)))
         else:
             assert False, "Invalid byte in header: {!r}".format(byte)
@@ -638,8 +638,8 @@ def compile_print(args, context):
     result.extend(compile_string_check(context))
 
     # Save the value, so we can restore it after the syscall.
-    result.extend(asm('push', 'rax'))
-    
+    result.extend(asm("push", "rax"))
+
     result.extend(compile_tagged_string_to_ptr())
 
     # The first 8 bytes of a string store the length, so copy it to rdx.
@@ -647,23 +647,23 @@ def compile_print(args, context):
     result.extend([0x48, 0x8B, 0x10])
 
     # After those bytes, we have the string data itself.
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
     # Previous expression is in rax, move to 2nd argument register.
     # mov rsi, rax
-    result.extend([0x48, 0x89, 0xc6])
+    result.extend([0x48, 0x89, 0xC6])
 
     # 1 = write syscall
-    result.extend(asm('mov', 'rax', 1))
+    result.extend(asm("mov", "rax", 1))
 
     # 1 = stdout
-    result.extend(asm('mov', 'rdi', 1))
+    result.extend(asm("mov", "rdi", 1))
 
-    result.extend(asm('syscall'))
+    result.extend(asm("syscall"))
 
     # Use the argument as the return value.
     # TODO: define a null type.
-    result.extend(asm('pop', 'rax'))
+    result.extend(asm("pop", "rax"))
 
     return result
 
@@ -699,22 +699,21 @@ def compile_not(args, context):
 
     return result
 
-def local_var_offset(var, context):
-    """Add `var` to `context`, and return its offset to rbp.
 
-    """
+def local_var_offset(var, context):
+    """Add `var` to `context`, and return its offset to rbp."""
     kind, var_name = var
     assert kind == SYMBOL, "Expected a symbol, got {!r}".format(kind)
 
     # If we've seen this variable name before, reuse the previous offset.
-    if var_name in context['locals']:
-        return context['locals'][var_name]
+    if var_name in context["locals"]:
+        return context["locals"][var_name]
 
     # Remember this new local variable, and compute its offset. Each
     # local variable is one word (64 bits), and is at a lower memory
     # address than rbp.
-    offset = -1 * (len(context['locals']) + 1) * 8
-    context['locals'][var_name] = offset
+    offset = -1 * (len(context["locals"]) + 1) * 8
+    context["locals"][var_name] = offset
 
     return offset
 
@@ -723,11 +722,11 @@ def compile_local_variable(var_name, context):
     assert isinstance(var_name, str)
 
     offset = None
-    if var_name in context['arg_offsets']:
-        offset = context['arg_offsets'][var_name]
+    if var_name in context["arg_offsets"]:
+        offset = context["arg_offsets"][var_name]
     # Locals variables can shadow function parameters.
-    if var_name in context['locals']:
-        offset = context['locals'][var_name]
+    if var_name in context["locals"]:
+        offset = context["locals"][var_name]
 
     if offset is None:
         assert False, "Variable `{}` is not bound".format(var_name)
@@ -745,7 +744,9 @@ def compile_let(args, context):
     assert vars_and_exprs[0] == LIST, "Expected a list of variables and their values."
     vars_and_exprs = vars_and_exprs[1]
 
-    assert len(vars_and_exprs) % 2 == 0, "Expected a list of variables and their values (got an odd list)"
+    assert (
+        len(vars_and_exprs) % 2 == 0
+    ), "Expected a list of variables and their values (got an odd list)"
     vars = vars_and_exprs[::2]
     exprs = vars_and_exprs[1::2]
     unique_vars = set(vars)
@@ -755,7 +756,7 @@ def compile_let(args, context):
     # sub rsp, 8 * len(vars)
     result.extend([0x48, 0x81, 0xEC] + int_32bit(8 * len(unique_vars)))
 
-    old_locals = context['locals'].copy()
+    old_locals = context["locals"].copy()
 
     for var, expr in zip(vars, exprs):
         result.extend(compile_expr(expr, context))
@@ -768,11 +769,11 @@ def compile_let(args, context):
     for expr in args[1:]:
         result.extend(compile_expr(expr, context))
 
-    result.extend(asm('add', 'rsp', 8 * len(vars)))
+    result.extend(asm("add", "rsp", 8 * len(vars)))
 
     # Restore previous locals.
-    context['locals'] = old_locals
-    
+    context["locals"] = old_locals
+
     return result
 
 
@@ -782,17 +783,17 @@ def compile_set(args, context):
     var = args[0]
     assert var[0] == SYMBOL, "Expected a symbol to assign to"
     var_name = var[1]
-    assert var_name in context['locals'], "Variable `{}` is not bound".format(var_name)
+    assert var_name in context["locals"], "Variable `{}` is not bound".format(var_name)
 
     result = []
 
     result.extend(compile_expr(args[1], context))
-    
+
     # mov [rbp + offset], rax
-    result.extend([0x48, 0x89, 0x85] + int_32bit(context['locals'][var_name]))
+    result.extend([0x48, 0x89, 0x85] + int_32bit(context["locals"][var_name]))
 
     # TODO: once we have null, set! should return null.
-    
+
     return result
 
 
@@ -814,7 +815,7 @@ def compile_while(args, context):
     loop_header.extend(compile_bool_check(context))
 
     loop_header.extend(zero_rax_tag_bits())
-    loop_header.extend(asm('cmp', 'rax', 0))
+    loop_header.extend(asm("cmp", "rax", 0))
 
     # eval body
     loop_body = compile_expr(args[1], context)
@@ -823,18 +824,20 @@ def compile_while(args, context):
     # bytes, so we can't use it with jumps with 4 byte offsets.
     je_num_bytes = 6
     jmp_num_bytes = 5
-    result_bytes = num_bytes(loop_header) + je_num_bytes + num_bytes(loop_body) + jmp_num_bytes
+    result_bytes = (
+        num_bytes(loop_header) + je_num_bytes + num_bytes(loop_body) + jmp_num_bytes
+    )
 
     result = []
     result.extend(loop_header)
     while_end = num_bytes(loop_body) + jmp_num_bytes
     # jmp while_end
-    result.extend([0x0f, 0x84] + int_32bit(while_end))
+    result.extend([0x0F, 0x84] + int_32bit(while_end))
 
     result.extend(loop_body)
-    
+
     # jmp WHILE_START
-    result.extend([0xe9] + int_32bit(-1 * result_bytes))
+    result.extend([0xE9] + int_32bit(-1 * result_bytes))
 
     # We need to return a legal value, so arbitrarily choose nil.
     result.extend(compile_nil_literal())
@@ -853,12 +856,12 @@ def compile_if(args, context):
     false_block = compile_expr(args[2], context)
 
     # jmp END_OF_TRUE_BLOCk
-    false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
+    false_block.extend([0xE9] + int_32bit(num_bytes(true_block)))
 
     result.extend(zero_rax_tag_bits())
-    result.extend(asm('cmp', 'rax', 1))
+    result.extend(asm("cmp", "rax", 1))
     # je TRUE_BLOCK (straight after FALSE_BLOCK)
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(false_block)))
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(false_block)))
 
     result.extend(false_block)
     result.extend(true_block)
@@ -881,14 +884,14 @@ def compile_equals(args, context):
 
     result = []
     result.extend(compile_expr(args[0], context))
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
 
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -899,16 +902,16 @@ def compile_equals(args, context):
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    result.extend([0x48, 0xC1, 0xE0, 64 - 8])
     # shr rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE8, 64-8])
+    result.extend([0x48, 0xC1, 0xE8, 64 - 8])
 
     # Set the boolean tag
-    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
+    result.extend(asm("mov", "rdi", BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
-    
+
     return result
 
 
@@ -920,9 +923,9 @@ def compile_less_than(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -930,7 +933,7 @@ def compile_less_than(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -944,16 +947,16 @@ def compile_less_than(args, context):
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    result.extend([0x48, 0xC1, 0xE0, 64 - 8])
     # shr rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE8, 64-8])
+    result.extend([0x48, 0xC1, 0xE8, 64 - 8])
 
     # Set the boolean tag
-    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
+    result.extend(asm("mov", "rdi", BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
-    
+
     return result
 
 
@@ -965,9 +968,9 @@ def compile_greater_than(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -975,7 +978,7 @@ def compile_greater_than(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # cmp rdi, rax
     result.extend([0x48, 0x39, 0xC7])
@@ -986,35 +989,35 @@ def compile_greater_than(args, context):
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    result.extend([0x48, 0xC1, 0xE0, 64 - 8])
     # shr rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE8, 64-8])
+    result.extend([0x48, 0xC1, 0xE8, 64 - 8])
 
     # Set the boolean tag
-    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
+    result.extend(asm("mov", "rdi", BOOLEAN_TAG))
 
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
-    
+
     return result
 
 
 def compile_int_literal(val):
     result = []
-    result.extend(asm('mov', 'rax', val))
+    result.extend(asm("mov", "rax", val))
     result.extend(compile_to_tagged_int())
     return result
 
 
 def compile_string_literal(value, context):
     # TODO: do this conversion during lexing.
-    string_literal = bytes(value, 'ascii')
+    string_literal = bytes(value, "ascii")
 
     offset = string_lit_offset(string_literal, context)
 
     result = []
     # mov ADDR OF VAL rax
-    result.extend([0x48, 0xb8, ['string_lit', offset]])
+    result.extend([0x48, 0xB8, ["string_lit", offset]])
 
     result.extend(compile_ptr_to_tagged_string())
     return result
@@ -1022,13 +1025,13 @@ def compile_string_literal(value, context):
 
 def compile_bool_literal(value):
     if value:
-        return asm('mov', 'rax', BOOLEAN_TAG | 1)
+        return asm("mov", "rax", BOOLEAN_TAG | 1)
     else:
-        return asm('mov', 'rax', BOOLEAN_TAG)
+        return asm("mov", "rax", BOOLEAN_TAG)
 
 
 def compile_nil_literal():
-    return asm('mov', 'rax', NIL_TAG)
+    return asm("mov", "rax", NIL_TAG)
 
 
 def compile_int_check(context):
@@ -1041,14 +1044,14 @@ def compile_int_check(context):
     result = []
     # A value is an integer if the top two bits are 0b00.
     # mov rdi, rax
-    result.extend([0x48, 0x89, 0xc7])
+    result.extend([0x48, 0x89, 0xC7])
 
     # shr rdi, 64 - TAG_BITS
-    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    result.extend(asm('cmp', 'rdi', INTEGER_TAG_BITS))
+    result.extend([0x48, 0xC1, 0xEF, 64 - TAG_BITS])
+    result.extend(asm("cmp", "rdi", INTEGER_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(error_block)))
 
     result.extend(error_block)
     return result
@@ -1064,16 +1067,16 @@ def compile_list_check(context):
     result = []
 
     # mov rdi, rax
-    result.extend([0x48, 0x89, 0xc7])
+    result.extend([0x48, 0x89, 0xC7])
     # shr rdi, 64 - TAG_BITS
-    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
+    result.extend([0x48, 0xC1, 0xEF, 64 - TAG_BITS])
 
     # or rdi, 1 # convert nil tag to cons tag
     result.extend([0x48, 0x81, 0xCF] + int_32bit(1))
-    result.extend(asm('cmp', 'rdi', CONS_TAG_BITS))
+    result.extend(asm("cmp", "rdi", CONS_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(error_block)))
 
     result.extend(error_block)
     return result
@@ -1081,31 +1084,35 @@ def compile_list_check(context):
 
 def compile_die(message, context):
     assert isinstance(message, bytes)
-    
+
     addr = string_lit_offset(message, context)
 
     result = [
         # mov eax, 1 (1 = sys_write)
-        0xb8, 0x01, 0x00, 0x00, 0x00,
+        0xB8,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
     ]
     # mov edi, 2 (2 = stderr)
-    result.extend([0xbf] + int_32bit(2))
+    result.extend([0xBF] + int_32bit(2))
     # mov rsi, STRING_LIT_ADDR
-    result.extend([0x48, 0xbe, ['string_lit', addr]])
+    result.extend([0x48, 0xBE, ["string_lit", addr]])
 
     # The first 8 bytes of a string store the length.
-    result.extend(asm('add', 'rsi', 8))
+    result.extend(asm("add", "rsi", 8))
 
     # mov rdx, len(literal)
-    result.extend([0x48, 0xba] + int_64bit(len(message)))
-    result.extend(asm('syscall'))
+    result.extend([0x48, 0xBA] + int_64bit(len(message)))
+    result.extend(asm("syscall"))
 
     # mov rdi, 1 (exit code)
-    result.extend(asm('mov', 'rdi', 1))
+    result.extend(asm("mov", "rdi", 1))
 
     # 60 = sys_exit
-    result.extend(asm('mov', 'rax', 60))
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rax", 60))
+    result.extend(asm("syscall"))
 
     return result
 
@@ -1116,14 +1123,14 @@ def compile_string_check(context):
     result = []
     # A value is a string if the top three bits are 0b100.
     # mov rdi, rax
-    result.extend([0x48, 0x89, 0xc7])
+    result.extend([0x48, 0x89, 0xC7])
     # shr rdi, 64 - TAG_BITS
-    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    result.extend(asm('cmp', 'rdi', STRING_TAG_BITS))
+    result.extend([0x48, 0xC1, 0xEF, 64 - TAG_BITS])
+    result.extend(asm("cmp", "rdi", STRING_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
-    
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(error_block)))
+
     result.extend(error_block)
     return result
 
@@ -1134,14 +1141,14 @@ def compile_bool_check(context):
     result = []
     # A value is a bool if the top three bits are 0b110.
     # mov rdi, rax
-    result.extend([0x48, 0x89, 0xc7])
+    result.extend([0x48, 0x89, 0xC7])
     # shr rdi, 64 - TAG_BITS
-    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    result.extend(asm('cmp', 'rdi', BOOLEAN_TAG_BITS))
+    result.extend([0x48, 0xC1, 0xEF, 64 - TAG_BITS])
+    result.extend(asm("cmp", "rdi", BOOLEAN_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
-    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
-    
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(error_block)))
+
     result.extend(error_block)
     return result
 
@@ -1153,16 +1160,22 @@ def compile_exit(args, context):
     result.extend(compile_expr(args[0], context))
 
     result.extend(compile_int_check(context))
-    
+
     # Previous expression is in rax, move to argument register.
     # mov rdi, rax
-    result.extend([0x48, 0x89, 0xc7])
+    result.extend([0x48, 0x89, 0xC7])
 
-    result.extend([
-        # mov $60 %eax (60 = sys_exit)
-        0xb8, 0x3c, 0x00, 0x00, 0x00,
-    ])
-    result.extend(asm('syscall'))
+    result.extend(
+        [
+            # mov $60 %eax (60 = sys_exit)
+            0xB8,
+            0x3C,
+            0x00,
+            0x00,
+            0x00,
+        ]
+    )
+    result.extend(asm("syscall"))
 
     return result
 
@@ -1173,12 +1186,12 @@ def compile_file_exists(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_string_check(context))
-    
+
     result.extend(compile_tagged_string_to_ptr())
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
@@ -1186,14 +1199,14 @@ def compile_file_exists(args, context):
 
     # From unistd.h.
     f_ok = 0
-    result.extend(asm('mov', 'rsi', f_ok))
+    result.extend(asm("mov", "rsi", f_ok))
 
     # 21 represents the access syscall.
-    result.extend(asm('mov', 'rax', 21))
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rax", 21))
+    result.extend(asm("syscall"))
 
     # We get 0 in rax if the file exists.
-    result.extend(asm('cmp', 'rax', 0))
+    result.extend(asm("cmp", "rax", 0))
 
     # write 0x00 or 0x01 to the low byte of rax.
     # sete al
@@ -1201,12 +1214,12 @@ def compile_file_exists(args, context):
 
     # zero the upper three bytes of rax
     # shl rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE0, 64-8])
+    result.extend([0x48, 0xC1, 0xE0, 64 - 8])
     # shr rax, 64 - 8
-    result.extend([0x48, 0xC1, 0xE8, 64-8])
+    result.extend([0x48, 0xC1, 0xE8, 64 - 8])
 
     # Set boolean tag.
-    result.extend(asm('mov', 'rdi', BOOLEAN_TAG))
+    result.extend(asm("mov", "rdi", BOOLEAN_TAG))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
 
@@ -1219,12 +1232,12 @@ def compile_open(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_string_check(context))
-    
+
     result.extend(compile_tagged_string_to_ptr())
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
@@ -1234,16 +1247,16 @@ def compile_open(args, context):
     o_rdwr = 0o2
     o_creat = 0o100
     # mov rsi, flag
-    result.extend(asm('mov', 'rsi', o_rdwr | o_creat))
+    result.extend(asm("mov", "rsi", o_rdwr | o_creat))
 
     mode = 0o644
     # mov rdx, mode
     result.extend([0x48, 0xBA] + int_64bit(mode))
-    
-    # mov eax, 2 (2 = sys_open)
-    result.extend([0xb8, 0x02, 0x00, 0x00, 0x00])
 
-    result.extend(asm('syscall'))
+    # mov eax, 2 (2 = sys_open)
+    result.extend([0xB8, 0x02, 0x00, 0x00, 0x00])
+
+    result.extend(asm("syscall"))
 
     # TODO: error if we get a negative file descriptor.
 
@@ -1259,20 +1272,20 @@ def compile_delete(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_string_check(context))
-    
+
     result.extend(compile_tagged_string_to_ptr())
 
     # String data starts with the size, then the string data
     # itself. Strings are already null-terminated.
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
     # Previous expression is in rax, move to 1st argument register.
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
     # 87 represents the unlink syscall.
-    result.extend(asm('mov', 'rax', 87))
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rax", 87))
+    result.extend(asm("syscall"))
 
     # TODO: error if we couldn't delete it.
 
@@ -1288,7 +1301,7 @@ def compile_write(args, context):
     result = []
     result.extend(compile_expr(args[0], context))
     result.extend(compile_int_check(context))
-    
+
     # Previous expression is in rax, save it in rcx.
     # mov rcx, rax
     result.extend([0x48, 0x89, 0xC1])
@@ -1298,7 +1311,7 @@ def compile_write(args, context):
     result.extend(compile_int_check(context))
 
     # We need the byte in memory, so we can pass a pointer.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # rsp now points to the byte we want to write.
     # mov rsi, rsp
@@ -1310,16 +1323,16 @@ def compile_write(args, context):
     result.extend([0x48, 0x89, 0xCF])
 
     # We're only writing one byte.
-    result.extend(asm('mov', 'rdx', 1))
+    result.extend(asm("mov", "rdx", 1))
 
     # 1 represents the write syscall.
-    result.extend(asm('mov', 'rax', 1))
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rax", 1))
+    result.extend(asm("syscall"))
 
     # Clean up stack.
     # This also means we're arbitrarily returning the second argument,
     # because we dont have a null type yet.
-    result.extend(asm('pop', 'rax'))
+    result.extend(asm("pop", "rax"))
 
     return result
 
@@ -1332,10 +1345,10 @@ def compile_chmod(args, context):
     result.extend(compile_string_check(context))
 
     result.extend(compile_tagged_string_to_ptr())
-    result.extend(asm('add', 'rax', 8))
+    result.extend(asm("add", "rax", 8))
 
-    result.extend(asm('push', 'rax'))
-    
+    result.extend(asm("push", "rax"))
+
     # First syscall argument in RDI.
 
     result.extend(compile_expr(args[1], context))
@@ -1343,16 +1356,16 @@ def compile_chmod(args, context):
     result.extend(compile_from_tagged_int())
 
     # First syscall argument in RDI.
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # Second syscall argument in RSI.
     # mov rsi, rax
-    result.extend([0x48, 0x89, 0xc6])
+    result.extend([0x48, 0x89, 0xC6])
 
     # chmod has syscall number 90.
-    result.extend(asm('mov', 'rax', 90))
+    result.extend(asm("mov", "rax", 90))
 
-    result.extend(asm('syscall'))
+    result.extend(asm("syscall"))
 
     # We need to return a legal value, so arbitrarily choose nil.
     result.extend(compile_nil_literal())
@@ -1373,15 +1386,15 @@ def compile_file_seek_end(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # 8 = lseek
-    result.extend(asm('mov', 'rax', 8))
+    result.extend(asm("mov", "rax", 8))
 
     # Offset of zero from the end.
-    result.extend(asm('mov', 'rsi', 0))
+    result.extend(asm("mov", "rsi", 0))
 
     # Whence is SEEK_END (2 according to unistd.h).
-    result.extend(asm('mov', 'rdx', 2))
-    
-    result.extend(asm('syscall'))
+    result.extend(asm("mov", "rdx", 2))
+
+    result.extend(asm("syscall"))
 
     # TODO: handle lseek errors.
 
@@ -1399,7 +1412,7 @@ def compile_file_seek(args, context):
     result.extend(compile_int_check(context))
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     result.extend(compile_expr(args[1], context))
     result.extend(compile_int_check(context))
@@ -1410,16 +1423,16 @@ def compile_file_seek(args, context):
     result.extend([0x48, 0x89, 0xC6])
 
     # RDI contains the file descriptor for this syscall.
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # 8 = lseek
-    result.extend(asm('mov', 'rax', 8))
+    result.extend(asm("mov", "rax", 8))
 
     seek_set = 0
     # mov rdx, seek_set
     result.extend([0x48, 0xBA] + int_64bit(seek_set))
-    
-    result.extend(asm('syscall'))
+
+    result.extend(asm("syscall"))
 
     # TODO: handle lseek errors.
 
@@ -1442,16 +1455,16 @@ def compile_file_pos(args, context):
     result.extend([0x48, 0x89, 0xC7])
 
     # 8 = lseek
-    result.extend(asm('mov', 'rax', 8))
+    result.extend(asm("mov", "rax", 8))
 
     # Offset of zero, we don't want to move the existing offset.
-    result.extend(asm('mov', 'rsi', 0))
+    result.extend(asm("mov", "rsi", 0))
 
     seek_cur = 1
     # mov rdx, seek_cur
     result.extend([0x48, 0xBA] + int_64bit(seek_cur))
-    
-    result.extend(asm('syscall'))
+
+    result.extend(asm("syscall"))
 
     # TODO: handle lseek errors.
 
@@ -1469,9 +1482,9 @@ def compile_add(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1479,12 +1492,12 @@ def compile_add(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # add rax, rdi
-    result.extend([0x48, 0x01, 0xf8])
+    result.extend([0x48, 0x01, 0xF8])
     result.extend(compile_to_tagged_int())
-    
+
     return result
 
 
@@ -1496,9 +1509,9 @@ def compile_subtract(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1509,12 +1522,12 @@ def compile_subtract(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    result.extend(asm('pop', 'rax'))
+    result.extend(asm("pop", "rax"))
 
     # sub rax, rdi
     result.extend([0x48, 0x29, 0xF8])
     result.extend(compile_to_tagged_int())
-    
+
     return result
 
 
@@ -1526,9 +1539,9 @@ def compile_multiply(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in rax.
     result.extend(compile_expr(args[1], context))
@@ -1536,12 +1549,12 @@ def compile_multiply(args, context):
     # untag
     result.extend(compile_from_tagged_int())
 
-    result.extend(asm('pop', 'rdi'))
+    result.extend(asm("pop", "rdi"))
 
     # imul rax, rdi
     result.extend([0x48, 0x0F, 0xAF, 0xC7])
     result.extend(compile_to_tagged_int())
-    
+
     return result
 
 
@@ -1554,9 +1567,9 @@ def compile_intdiv(args, context):
     result.extend(compile_int_check(context))
     # untag
     result.extend(compile_from_tagged_int())
-    
+
     # Push first argument, so we can reuse rax.
-    result.extend(asm('push', 'rax'))
+    result.extend(asm("push", "rax"))
 
     # Evaluate second argument, result in RAX.
     result.extend(compile_expr(args[1], context))
@@ -1568,16 +1581,16 @@ def compile_intdiv(args, context):
     # mov rdi, rax
     result.extend([0x48, 0x89, 0xC7])
 
-    result.extend(asm('pop', 'rax'))
+    result.extend(asm("pop", "rax"))
 
     # DIV uses RDX:RAX as its source, so ensure RDX is zero.
-    result.extend(asm('mov', 'rdx', 0))
+    result.extend(asm("mov", "rdx", 0))
 
     # div rdi
     result.extend([0x48, 0xF7, 0xF7])
     # The quotient is in rax, so tag it and we're done.
     result.extend(compile_to_tagged_int())
-    
+
     return result
 
 
@@ -1591,63 +1604,63 @@ def compile_expr(subtree, context):
         assert fun_kind == SYMBOL, "Can only call symbol names, got {}".format(fun_kind)
 
         args = value[1:]
-        if fun_name == 'print':
+        if fun_name == "print":
             return compile_print(args, context)
-        elif fun_name == 'exit':
+        elif fun_name == "exit":
             return compile_exit(args, context)
-        elif fun_name == '+':
+        elif fun_name == "+":
             return compile_add(args, context)
-        elif fun_name == '-':
+        elif fun_name == "-":
             return compile_subtract(args, context)
-        elif fun_name == '*':
+        elif fun_name == "*":
             return compile_multiply(args, context)
-        elif fun_name == 'intdiv':
+        elif fun_name == "intdiv":
             return compile_intdiv(args, context)
-        elif fun_name == 'not':
+        elif fun_name == "not":
             return compile_not(args, context)
-        elif fun_name == 'if':
+        elif fun_name == "if":
             return compile_if(args, context)
-        elif fun_name == 'string-length':
+        elif fun_name == "string-length":
             return compile_string_length(args, context)
-        elif fun_name == 'let':
+        elif fun_name == "let":
             return compile_let(args, context)
-        elif fun_name == 'set!':
+        elif fun_name == "set!":
             return compile_set(args, context)
-        elif fun_name == 'while':
+        elif fun_name == "while":
             return compile_while(args, context)
-        elif fun_name == 'do':
+        elif fun_name == "do":
             return compile_do(args, context)
-        elif fun_name == 'cons':
+        elif fun_name == "cons":
             return compile_cons(args, context)
-        elif fun_name == '<':
+        elif fun_name == "<":
             return compile_less_than(args, context)
-        elif fun_name == '>':
+        elif fun_name == ">":
             return compile_greater_than(args, context)
-        elif fun_name == '=':
+        elif fun_name == "=":
             return compile_equals(args, context)
-        elif fun_name == 'file-exists?':
+        elif fun_name == "file-exists?":
             return compile_file_exists(args, context)
-        elif fun_name == 'open':
+        elif fun_name == "open":
             return compile_open(args, context)
-        elif fun_name == 'write!':
+        elif fun_name == "write!":
             return compile_write(args, context)
-        elif fun_name == 'delete!':
+        elif fun_name == "delete!":
             return compile_delete(args, context)
-        elif fun_name == 'chmod!':
+        elif fun_name == "chmod!":
             return compile_chmod(args, context)
-        elif fun_name == 'file-seek-end!':
+        elif fun_name == "file-seek-end!":
             return compile_file_seek_end(args, context)
-        elif fun_name == 'file-seek!':
+        elif fun_name == "file-seek!":
             return compile_file_seek(args, context)
-        elif fun_name == 'file-pos':
+        elif fun_name == "file-pos":
             return compile_file_pos(args, context)
-        elif fun_name == '__allocate':
+        elif fun_name == "__allocate":
             return compile_allocate_intrinsic(args, context)
-        elif fun_name == '__read':
+        elif fun_name == "__read":
             return compile_read_intrinsic(args, context)
-        elif fun_name == '__pointer-to-string':
+        elif fun_name == "__pointer-to-string":
             return compile_pointer_to_string_intrinsic(args, context)
-        elif fun_name == '__char-at':
+        elif fun_name == "__char-at":
             return compile_char_at_intrinsic(args, context)
         else:
             return compile_call(fun_name, args, context)
@@ -1666,7 +1679,7 @@ def compile_expr(subtree, context):
 
 
 def num_args(fun_name, context):
-    def_kind, def_value = context['global_funs'][fun_name]
+    def_kind, def_value = context["global_funs"][fun_name]
     assert def_kind == LIST, "Malformed function definition"
     assert len(def_value) > 3, "defun requires a name, parameters, and a body"
 
@@ -1677,10 +1690,12 @@ def num_args(fun_name, context):
 
 
 def compile_call(fun_name, args, context):
-    assert fun_name in context['global_funs'], "Unknown function: {}".format(fun_name)
+    assert fun_name in context["global_funs"], "Unknown function: {}".format(fun_name)
 
     expected_args = num_args(fun_name, context)
-    err_msg = "Expected {} arguments to {}, got {}".format(expected_args, fun_name, len(args))
+    err_msg = "Expected {} arguments to {}, got {}".format(
+        expected_args, fun_name, len(args)
+    )
     assert expected_args == len(args), err_msg
 
     result = []
@@ -1690,55 +1705,56 @@ def compile_call(fun_name, args, context):
 
     for arg in reversed(args):
         result.extend(compile_expr(arg, context))
-        result.extend(asm('push', 'rax'))
+        result.extend(asm("push", "rax"))
 
     # CALL opcode
     result.extend([0xE8])
 
     # We may not know the offset of the function yet.
-    result.extend([['fun_offset', fun_name]])
+    result.extend([["fun_offset", fun_name]])
 
-    result.extend(asm('add', 'rsp', 8 * len(args)))
+    result.extend(asm("add", "rsp", 8 * len(args)))
 
     return result
 
 
 def compile_start(context):
-    """Call the main function, then exit.
-
-    """
+    """Call the main function, then exit."""
     result = []
 
     # Ensure rbp is set correctly, so we can return from main.
     # mov rbp, rsp
     result.extend([0x48, 0x89, 0xE5])
 
-    result.extend(compile_call('main', [], context))
+    result.extend(compile_call("main", [], context))
 
     # Always end execution with (exit 0) if the user hasn't exited.
     result.extend(compile_exit([(INTEGER, 0)], context))
 
-    context['instr_bytes'] += num_bytes(result)
+    context["instr_bytes"] += num_bytes(result)
     return result
 
 
 def compile_fun(ast, context):
     # Set up context items that are per-function.
-    context['locals'] = {}
-    
+    context["locals"] = {}
+
     ast_kind, ast_value = ast
     assert ast_kind == LIST
 
     defun = ast_value[0]
-    assert defun == (SYMBOL, 'defun'), "Expected a function definition, got: {!r}".format(defun)
+    assert defun == (
+        SYMBOL,
+        "defun",
+    ), "Expected a function definition, got: {!r}".format(defun)
     name_kind, name = ast_value[1]
     assert name_kind == SYMBOL, "Function name must be a symbol."
 
-    context['fun_offsets'][name] = context['instr_bytes']
-    
+    context["fun_offsets"][name] = context["instr_bytes"]
+
     args_kind, args = ast_value[2]
     assert args_kind == LIST, "Function arguments must be a list"
-    
+
     arg_offsets = {}
     for i, (arg_kind, arg) in enumerate(args):
         assert arg_kind == SYMBOL, "Function arguments must be symbols"
@@ -1753,15 +1769,15 @@ def compile_fun(ast, context):
         # RBP + 0:  saved RBP
         arg_offsets[arg] = 16 + i * 8
 
-    context['arg_offsets'] = arg_offsets
-    
+    context["arg_offsets"] = arg_offsets
+
     body = ast_value[3:]
-    
+
     # The raw bytes of the instructions for the main function.
     fun_tmpl = []
 
     # Function prologue, setting up the stack.
-    fun_tmpl.extend(asm('push', 'rbp'))
+    fun_tmpl.extend(asm("push", "rbp"))
     # mov rbp, rsp
     fun_tmpl.extend([0x48, 0x89, 0xE5])
 
@@ -1771,12 +1787,12 @@ def compile_fun(ast, context):
     # Function epilogue.
     # mov rsp, rbp
     fun_tmpl.extend([0x48, 0x89, 0xEC])
-    fun_tmpl.extend(asm('pop', 'rbp'))
-    fun_tmpl.extend(asm('ret'))
+    fun_tmpl.extend(asm("pop", "rbp"))
+    fun_tmpl.extend(asm("ret"))
 
-    context['instr_bytes'] += num_bytes(fun_tmpl)
-    context.pop('locals')
-    context.pop('arg_offsets')
+    context["instr_bytes"] += num_bytes(fun_tmpl)
+    context.pop("locals")
+    context.pop("arg_offsets")
 
     return fun_tmpl
 
@@ -1790,19 +1806,17 @@ def num_bytes_string_lit(value):
 
 
 def string_lit_offset(value, context):
-    """Add `value` to context, and return its offset.
-
-    """
+    """Add `value` to context, and return its offset."""
     assert isinstance(value, bytes), "String literals must be bytes"
 
     # If we've seen this string literal before, reuse the previous offset.
-    if value in context['string_literals']:
-        return context['string_literals'][value]
+    if value in context["string_literals"]:
+        return context["string_literals"][value]
 
     # Remember this new string literal, and compute its offset.
-    offset = context['data_offset']
-    context['string_literals'][value] = offset
-    context['data_offset'] += num_bytes_string_lit(value)
+    offset = context["data_offset"]
+    context["string_literals"][value] = offset
+    context["data_offset"] += num_bytes_string_lit(value)
 
     return offset
 
@@ -1821,9 +1835,14 @@ def funs_from_path(path):
     defs_by_name = {}
     for def_ in defs:
         def_kind, def_value = def_
-        assert def_kind == LIST, "Expected a list at the top level, got {}".format(def_kind)
+        assert def_kind == LIST, "Expected a list at the top level, got {}".format(
+            def_kind
+        )
 
-        assert def_value and def_value[0] == (SYMBOL, 'defun'), "Expected a function definition, got: {!r}".format(def_value[0])
+        assert def_value and def_value[0] == (
+            SYMBOL,
+            "defun",
+        ), "Expected a function definition, got: {!r}".format(def_value[0])
         assert len(def_value) > 3, "defun requires a name, parameters, and a body"
 
         name_kind, name_value = def_value[1]
@@ -1838,15 +1857,19 @@ def main(filename):
     defs_by_name = funs_from_path(filename)
     defs = dict(**stdlib_defs, **defs_by_name)
 
-    assert 'main' in defs, "A program must have a main function"
+    assert "main" in defs, "A program must have a main function"
 
-    context = {'string_literals': {}, 'data_offset': 0,
-               'fun_offsets': {}, 'global_funs': defs,
-               'instr_bytes': 0}
+    context = {
+        "string_literals": {},
+        "data_offset": 0,
+        "fun_offsets": {},
+        "global_funs": defs,
+        "instr_bytes": 0,
+    }
 
     instrs_tmpl = []
     instrs_tmpl.extend(compile_start(context))
-    
+
     for ast in defs.values():
         instrs_tmpl.extend(compile_fun(ast, context))
 
@@ -1854,15 +1877,17 @@ def main(filename):
     for byte in instrs_tmpl:
         if isinstance(byte, int):
             instrs.append(byte)
-        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'string_lit':
+        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == "string_lit":
             offset = byte[1]
 
-            header_size = 120 # TODO: compute
+            header_size = 120  # TODO: compute
             # String literals are immediately after code section.
-            instrs.extend(int_64bit(ENTRY_POINT + header_size + num_bytes(instrs_tmpl) + offset))
-        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == 'fun_offset':
+            instrs.extend(
+                int_64bit(ENTRY_POINT + header_size + num_bytes(instrs_tmpl) + offset)
+            )
+        elif isinstance(byte, list) and len(byte) == 2 and byte[0] == "fun_offset":
             fun_name = byte[1]
-            absolute_offset = context['fun_offsets'][fun_name]
+            absolute_offset = context["fun_offsets"][fun_name]
             # A relative is calculated relative to the current value
             # of rip, which is after the current CALL
             # instruction. We've only written the opcode so far, so
@@ -1879,12 +1904,12 @@ def main(filename):
     # Given `foo.wlp`, write output binary `foo`.
     output_path = os.path.splitext(filename)[0]
 
-    with open(output_path, 'wb') as f:
+    with open(output_path, "wb") as f:
         f.write(bytes(header))
         f.write(bytes(instrs))
         # TODO: put string literals in a named section
         # Assumes dict is in insertion order (Python 3.6+)
-        for string_literal in context['string_literals'].keys():
+        for string_literal in context["string_literals"].keys():
             # Strings are stored as a 64-bit integer of their length,
             # then their data.
             f.write(bytes(int_64bit(len(string_literal))))
@@ -1894,9 +1919,9 @@ def main(filename):
     os.chmod(output_path, 0o744)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: {} <path>".format(sys.argv[0]))
         sys.exit(1)
-    
+
     main(sys.argv[1])
