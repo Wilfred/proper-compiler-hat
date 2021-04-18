@@ -38,6 +38,11 @@ for f in test/*.wlp; do
         fi
 
         diff --color -u "$f.stderr" "$f.outerr"
+
+        # Clean up empty .stderr file.
+        if [ ! -s "$f.stderr" ]; then
+            rm "$f.stderr"
+        fi
     elif [ -s "$f.stderr" ]; then
         echo "Expected something on stderr!"
     fi
