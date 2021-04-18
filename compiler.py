@@ -248,6 +248,22 @@ def asm(*args):
 
         assert False, "Unsupported arguments to add: {!r}".format(args)
 
+    if name == 'cmp':
+        assert len(args) == 3
+
+        dest = args[1]
+        value = args[2]
+
+        if isinstance(value, int):
+            # TODO: list out registers by encoding value, rather than
+            # this verbose list of if statements.
+            if dest == 'rax':
+                return [0x48, 0x3d] + int_32bit(value)
+            elif dest == 'rdi':
+                return [0x48, 0x81, 0xFF] + int_32bit(value)
+
+        assert False, "Unsupported arguments to cmp: {!r}".format(args)
+
     if name == 'syscall':
         return [0x0f, 0x05]
     if name == 'ret':
@@ -798,8 +814,7 @@ def compile_while(args, context):
     loop_header.extend(compile_bool_check(context))
 
     loop_header.extend(zero_rax_tag_bits())
-    # cmp rax, 0
-    loop_header.extend([0x48, 0x3d] + int_32bit(0))
+    loop_header.extend(asm('cmp', 'rax', 0))
 
     # eval body
     loop_body = compile_expr(args[1], context)
@@ -841,8 +856,7 @@ def compile_if(args, context):
     false_block.extend([0xe9] + int_32bit(num_bytes(true_block)))
 
     result.extend(zero_rax_tag_bits())
-    # cmp rax, 1
-    result.extend([0x48, 0x3d] + int_32bit(1))
+    result.extend(asm('cmp', 'rax', 1))
     # je TRUE_BLOCK (straight after FALSE_BLOCK)
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(false_block)))
 
@@ -1031,8 +1045,8 @@ def compile_int_check(context):
 
     # shr rdi, 64 - TAG_BITS
     result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    # cmp rdi, INTEGER_TAG_BITS
-    result.extend([0x48, 0x81, 0xff] + int_32bit(INTEGER_TAG_BITS))
+    result.extend(asm('cmp', 'rdi', INTEGER_TAG_BITS))
+
     # je END_OF_ERROR_BLOCK
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
 
@@ -1056,9 +1070,7 @@ def compile_list_check(context):
 
     # or rdi, 1 # convert nil tag to cons tag
     result.extend([0x48, 0x81, 0xCF] + int_32bit(1))
-
-    # cmp rdi, CONS_TAG_BITS
-    result.extend([0x48, 0x81, 0xff] + int_32bit(CONS_TAG_BITS))
+    result.extend(asm('cmp', 'rdi', CONS_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
@@ -1107,8 +1119,8 @@ def compile_string_check(context):
     result.extend([0x48, 0x89, 0xc7])
     # shr rdi, 64 - TAG_BITS
     result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    # cmp rdi, 4
-    result.extend([0x48, 0x81, 0xff] + int_32bit(0b100))
+    result.extend(asm('cmp', 'rdi', STRING_TAG_BITS))
+
     # je END_OF_ERROR_BLOCK
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
     
@@ -1125,8 +1137,8 @@ def compile_bool_check(context):
     result.extend([0x48, 0x89, 0xc7])
     # shr rdi, 64 - TAG_BITS
     result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    # cmp rdi, 6
-    result.extend([0x48, 0x81, 0xff] + int_32bit(0b110))
+    result.extend(asm('cmp', 'rdi', BOOLEAN_TAG_BITS))
+
     # je END_OF_ERROR_BLOCK
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
     
@@ -1181,8 +1193,7 @@ def compile_file_exists(args, context):
     result.extend(asm('syscall'))
 
     # We get 0 in rax if the file exists.
-    # cmp rax, 0
-    result.extend([0x48, 0x3d] + int_32bit(0))
+    result.extend(asm('cmp', 'rax', 0))
 
     # write 0x00 or 0x01 to the low byte of rax.
     # sete al
