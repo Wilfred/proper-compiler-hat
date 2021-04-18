@@ -504,6 +504,21 @@ def compile_first(args, context):
     return result
 
 
+def compile_rest(args, context):
+    check_num_args("rest", 1, args)
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+
+    result.extend(compile_cons_check(context))
+    result.extend(compile_tagged_cons_to_ptr())
+
+    # mov rax, [rax+8]
+    result.extend([0x48, 0x8B, 0x40, 0x08])
+
+    return result
+
+
 def compile_pointer_to_string_intrinsic(args, context):
     check_num_args("__pointer-to-string", 2, args)
 
@@ -1682,6 +1697,8 @@ def compile_expr(subtree, context):
             return compile_less_than(args, context)
         elif fun_name == "first":
             return compile_first(args, context)
+        elif fun_name == "rest":
+            return compile_rest(args, context)
         elif fun_name == ">":
             return compile_greater_than(args, context)
         elif fun_name == "=":

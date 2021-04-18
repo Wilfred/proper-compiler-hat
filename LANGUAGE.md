@@ -255,6 +255,15 @@ argument.
 Returns the first item of the cons cell given, or errors if not a cons
 cell.
 
+### `rest` function
+
+```
+(rest (cons 1 (cons 2 nil)) ; (cons 2 nil)
+```
+
+Returns the second item of the cons cell given, or errors if not a cons
+cell.
+
 ## String functions
 
 ### `string-length` function
