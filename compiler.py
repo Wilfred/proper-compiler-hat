@@ -1032,8 +1032,8 @@ def compile_int_check(context):
 
     # shr rdi, 64 - TAG_BITS
     result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
-    # cmp rdi, 0
-    result.extend([0x48, 0x81, 0xff] + int_32bit(0))
+    # cmp rdi, INTEGER_TAG_BITS
+    result.extend([0x48, 0x81, 0xff] + int_32bit(INTEGER_TAG_BITS))
     # je END_OF_ERROR_BLOCK
     result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
 
