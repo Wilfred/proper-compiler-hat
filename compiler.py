@@ -368,6 +368,10 @@ def compile_tagged_string_to_ptr():
     return zero_rax_tag_bits()
 
 
+def compile_tagged_cons_to_ptr():
+    return zero_rax_tag_bits()
+
+
 def check_num_args(fn_name, expected_num, args):
     msg = "{} requires {} argument{}, got {}".format(
         fn_name, expected_num, "s" if expected_num else "", len(args)
@@ -481,6 +485,21 @@ def compile_cons(args, context):
     result.extend(asm("mov", "rdi", CONS_TAG))
     # add rax, rdi
     result.extend([0x48, 0x01, 0xF8])
+
+    return result
+
+
+def compile_first(args, context):
+    check_num_args("first", 1, args)
+
+    result = []
+    result.extend(compile_expr(args[0], context))
+
+    result.extend(compile_cons_check(context))
+    result.extend(compile_tagged_cons_to_ptr())
+
+    # mov rax, [rax]
+    result.extend([0x48, 0x8B, 0x00])
 
     return result
 
@@ -1061,6 +1080,8 @@ def compile_list_check(context):
     """Throw a runtime error if the value in rax is not a cons cell or nil.
     Does not modify rax.
 
+    See also `compile_cons_check`.
+
     """
     error_block = compile_die(b"not a list :(\n", context)
 
@@ -1073,6 +1094,31 @@ def compile_list_check(context):
 
     # or rdi, 1 # convert nil tag to cons tag
     result.extend([0x48, 0x81, 0xCF] + int_32bit(1))
+    result.extend(asm("cmp", "rdi", CONS_TAG_BITS))
+
+    # je END_OF_ERROR_BLOCK
+    result.extend([0x0F, 0x84] + int_32bit(num_bytes(error_block)))
+
+    result.extend(error_block)
+    return result
+
+
+def compile_cons_check(context):
+    """Throw a runtime error if the value in rax is not a cons cell or nil.
+    Does not modify rax.
+
+    See also `compile_list_check`.
+
+    """
+    error_block = compile_die(b"not a cons cell :(\n", context)
+
+    result = []
+
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xC7])
+    # shr rdi, 64 - TAG_BITS
+    result.extend([0x48, 0xC1, 0xEF, 64 - TAG_BITS])
+
     result.extend(asm("cmp", "rdi", CONS_TAG_BITS))
 
     # je END_OF_ERROR_BLOCK
@@ -1634,6 +1680,8 @@ def compile_expr(subtree, context):
             return compile_cons(args, context)
         elif fun_name == "<":
             return compile_less_than(args, context)
+        elif fun_name == "first":
+            return compile_first(args, context)
         elif fun_name == ">":
             return compile_greater_than(args, context)
         elif fun_name == "=":

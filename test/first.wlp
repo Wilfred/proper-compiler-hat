@@ -1,0 +1,6 @@
+(defun main ()
+  (if (=
+       (first (cons 1 nil))
+       1)
+      (print "good\n")
+    (print "bad\n")))

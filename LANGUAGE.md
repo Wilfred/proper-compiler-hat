@@ -246,6 +246,15 @@ Calculates boolean OR.
 Returns a new list with the first argument appended to the second
 argument.
 
+### `first` function
+
+```
+(first (cons 2 nil)) ; 2
+```
+
+Returns the first item of the cons cell given, or errors if not a cons
+cell.
+
 ## String functions
 
 ### `string-length` function
