@@ -448,9 +448,8 @@ def compile_cons(args, context):
 
     # Second argument: second item of the cons cell.
     result.extend(compile_expr(args[1], context))
+    result.extend(compile_list_check(context))
     result.extend(asm('push', 'rax'))
-
-    # TODO: check the second arg is nil or a cons cell.
 
     # Allocate two words for the cons cell.
     result.extend(compile_allocate_intrinsic([(INTEGER, 8 * 2)], context))
@@ -1039,6 +1038,34 @@ def compile_int_check(context):
 
     result.extend(error_block)
     return result
+
+
+def compile_list_check(context):
+    """Throw a runtime error if the value in rax is not a cons cell or nil.
+    Does not modify rax.
+
+    """
+    error_block = compile_die(b"not a list :(\n", context)
+
+    result = []
+
+    # mov rdi, rax
+    result.extend([0x48, 0x89, 0xc7])
+    # shr rdi, 64 - TAG_BITS
+    result.extend([0x48, 0xc1, 0xef, 64 - TAG_BITS])
+
+    # or rdi, 1 # convert nil tag to cons tag
+    result.extend([0x48, 0x81, 0xCF] + int_32bit(1))
+
+    # cmp rdi, CONS_TAG_BITS
+    result.extend([0x48, 0x81, 0xff] + int_32bit(CONS_TAG_BITS))
+
+    # je END_OF_ERROR_BLOCK
+    result.extend([0x0f, 0x84] + int_32bit(num_bytes(error_block)))
+
+    result.extend(error_block)
+    return result
+
 
 def compile_die(message, context):
     assert isinstance(message, bytes)
